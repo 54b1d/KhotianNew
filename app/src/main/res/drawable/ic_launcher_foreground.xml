@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Stylized Paper Document -->
+    <path
+        android:fillColor="@color/white"
+        android:pathData="M34,29h32l8,8v42c0,2.2 -1.8,4 -4,4h-36c-2.2,0 -4,-1.8 -4,-4v-46c0,-2.2 1.8,-4 4,-4z" />
+
+    <!-- Document Fold/Accent -->
+    <path
+        android:fillColor="#E0E0E0"
+        android:pathData="M66,29v8h8z" />
+
+    <!-- Green Checkmark -->
+    <path
+        android:strokeColor="@color/primary_green"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M44,56l6,6l14,-14" />
+
+    <!-- Gold Coin -->
+    <path
+        android:fillColor="@color/coin_gold"
+        android:pathData="M80,78c0,6.6 -5.4,12 -12,12s-12,-5.4 -12,-12s5.4,-12 12,-12s12,5.4 12,12z" />
+
+    <!-- Coin Detail -->
+    <path
+        android:fillColor="#D4AF37"
+        android:pathData="M73,78c0,2.8 -2.2,5 -5,5s-5,-2.2 -5,-5s2.2,-5 5,-5s5,2.2 5,5z" />
+
+</vector>
