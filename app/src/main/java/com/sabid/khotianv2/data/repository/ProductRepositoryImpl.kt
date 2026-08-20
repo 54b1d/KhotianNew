@@ -51,6 +51,8 @@ class ProductRepositoryImpl @Inject constructor(
                     baseStock = baseStock.add(qty)
                 } else if (type == com.sabid.khotianv2.data.local.entity.BusinessTransactionType.SALE) {
                     baseStock = baseStock.subtract(qty)
+                } else if (type == com.sabid.khotianv2.data.local.entity.BusinessTransactionType.STOCK_ADJUSTMENT) {
+                    baseStock = baseStock.add(qty)
                 }
             }
             val defaultUnit = units.find { it.id == product.defaultUnitId }

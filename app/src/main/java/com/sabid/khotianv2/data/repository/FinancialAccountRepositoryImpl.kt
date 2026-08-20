@@ -14,6 +14,10 @@ class FinancialAccountRepositoryImpl @Inject constructor(
     override fun getAllAccounts(): Flow<List<FinancialAccount>> =
         accountDao.getAllAccounts().map { entities -> entities.map { it.toDomain() } }
 
+    override fun getAccountsByType(type: com.sabid.khotianv2.domain.model.FinancialAccountType): Flow<List<FinancialAccount>> =
+        accountDao.getAccountsByType(com.sabid.khotianv2.data.local.entity.FinancialAccountType.valueOf(type.name))
+            .map { entities -> entities.map { it.toDomain() } }
+
     override fun getAccountById(id: Long): Flow<FinancialAccount?> =
         accountDao.getAccountByIdFlow(id).map { it?.toDomain() }
 

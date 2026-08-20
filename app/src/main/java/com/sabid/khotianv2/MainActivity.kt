@@ -90,7 +90,7 @@ class MainActivity : ComponentActivity() {
                                     viewModel = viewModel,
                                     onLoginSuccess = {
                                         backStack.clear()
-                                        backStack.add(NavRoutes.Dashboard)
+                                        backStack.add(NavRoutes.Home)
                                     }
                                 )
                             }
@@ -100,8 +100,46 @@ class MainActivity : ComponentActivity() {
                                     viewModel = viewModel,
                                     onSetupSuccess = {
                                         backStack.clear()
+                                        backStack.add(NavRoutes.Home)
+                                    }
+                                )
+                            }
+                            entry<NavRoutes.Home>(
+                                metadata = ListDetailSceneStrategy.listPane()
+                            ) {
+                                val viewModel: HomeViewModel = hiltViewModel()
+                                HomeScreen(
+                                    viewModel = viewModel,
+                                    onAddTransactionClick = {
+                                        backStack.add(NavRoutes.TransactionEntry())
+                                    },
+                                    onTransactionClick = { transaction ->
+                                        backStack.add(NavRoutes.TransactionEntry(transactionId = transaction.id))
+                                    },
+                                    onAccountClick = { accountId ->
+                                        backStack.add(NavRoutes.FinancialAccountLedger(accountId))
+                                    },
+                                    onPartiesClick = {
+                                        backStack.add(NavRoutes.Parties)
+                                    },
+                                    onDashboardClick = {
                                         backStack.add(NavRoutes.Dashboard)
                                     }
+                                )
+                            }
+                            entry<NavRoutes.Parties>(
+                                metadata = ListDetailSceneStrategy.listPane()
+                            ) {
+                                val viewModel: DashboardViewModel = hiltViewModel()
+                                PartiesScreen(
+                                    viewModel = viewModel,
+                                    onPartyClick = { partyId ->
+                                        backStack.add(NavRoutes.PartyLedger(partyId))
+                                    },
+                                    onAddPartyClick = {
+                                        backStack.add(NavRoutes.PartyEntry)
+                                    },
+                                    onBackClick = { backStack.removeLastOrNull() }
                                 )
                             }
                             entry<NavRoutes.Dashboard>(
@@ -110,9 +148,6 @@ class MainActivity : ComponentActivity() {
                                 val viewModel: DashboardViewModel = hiltViewModel()
                                 DashboardScreen(
                                     viewModel = viewModel,
-                                    onPartyClick = { partyId ->
-                                        backStack.add(NavRoutes.PartyLedger(partyId))
-                                    },
                                     onFinancialAccountClick = { accountId ->
                                         backStack.add(NavRoutes.FinancialAccountLedger(accountId))
                                     },
@@ -133,20 +168,48 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onBackupClick = {
                                         backStack.add(NavRoutes.Backup)
-                                    }
+                                    },
+                                    onProfitLossClick = {
+                                        backStack.add(NavRoutes.ProfitLoss)
+                                    },
+                                    onStocktakeClick = {
+                                        backStack.add(NavRoutes.Stocktake)
+                                    },
+                                    onBackClick = { backStack.removeLastOrNull() }
+                                )
+                            }
+                            entry<NavRoutes.ProfitLoss>(
+                                metadata = ListDetailSceneStrategy.detailPane()
+                            ) {
+                                val viewModel: ProfitLossViewModel = hiltViewModel()
+                                ProfitLossScreen(
+                                    viewModel = viewModel,
+                                    onBack = { backStack.removeLastOrNull() },
+                                    onStocktake = { backStack.add(NavRoutes.Stocktake) }
+                                )
+                            }
+                            entry<NavRoutes.Stocktake>(
+                                metadata = ListDetailSceneStrategy.extraPane()
+                            ) {
+                                StocktakeScreen(
+                                    onBack = { backStack.removeLastOrNull() }
                                 )
                             }
                             entry<NavRoutes.PartyLedger>(
                                 metadata = ListDetailSceneStrategy.detailPane()
                             ) { route ->
                                 val viewModel: LedgerViewModel = hiltViewModel(
+                                    key = "party_ledger_${route.partyId}",
                                     creationCallback = { factory: LedgerViewModel.Factory ->
                                         factory.create(route.partyId)
                                     }
                                 )
                                 PartyLedgerScreen(
                                     viewModel = viewModel,
-                                    onBackClick = { backStack.removeLastOrNull() }
+                                    onBackClick = { backStack.removeLastOrNull() },
+                                    onTransactionClick = { transactionId ->
+                                        backStack.add(NavRoutes.TransactionEntry(transactionId = transactionId))
+                                    }
                                 )
                             }
                             entry<NavRoutes.PartyEntry>(
@@ -163,8 +226,9 @@ class MainActivity : ComponentActivity() {
                                 metadata = ListDetailSceneStrategy.extraPane()
                             ) { route ->
                                 val viewModel: TransactionEntryViewModel = hiltViewModel(
+                                    key = "tx_entry_${route.transactionId ?: 0}_${route.partyId ?: 0}",
                                     creationCallback = { factory: TransactionEntryViewModel.Factory ->
-                                        factory.create(route.partyId)
+                                        factory.create(route.partyId, route.transactionId)
                                     }
                                 )
                                 TransactionEntryScreen(
@@ -229,13 +293,17 @@ class MainActivity : ComponentActivity() {
                                 metadata = ListDetailSceneStrategy.detailPane()
                             ) { route ->
                                 val viewModel: FinancialAccountLedgerViewModel = hiltViewModel(
+                                    key = "acc_ledger_${route.accountId}",
                                     creationCallback = { factory: FinancialAccountLedgerViewModel.Factory ->
                                         factory.create(route.accountId)
                                     }
                                 )
                                 FinancialAccountLedgerScreen(
                                     viewModel = viewModel,
-                                    onBackClick = { backStack.removeLastOrNull() }
+                                    onBackClick = { backStack.removeLastOrNull() },
+                                    onTransactionClick = { transactionId ->
+                                        backStack.add(NavRoutes.TransactionEntry(transactionId = transactionId))
+                                    }
                                 )
                             }
                         }

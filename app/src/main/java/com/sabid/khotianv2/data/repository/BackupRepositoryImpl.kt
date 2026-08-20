@@ -13,6 +13,8 @@ class BackupRepositoryImpl @Inject constructor(
     private val partyDao: PartyDao,
     private val transactionDao: TransactionDao,
     private val financialAccountDao: FinancialAccountDao,
+    private val expenseCategoryDao: ExpenseCategoryDao,
+    private val stocktakeDao: StocktakeDao,
     private val dataImportDao: DataImportDao,
     private val moshi: Moshi
 ) : BackupRepository {
@@ -25,7 +27,9 @@ class BackupRepositoryImpl @Inject constructor(
             products = productDao.getAllProducts().first().map { it.toDomain() },
             parties = partyDao.getAllParties().first().map { it.toDomain() },
             transactions = transactionDao.getAllTransactions().first().map { it.toDomain() },
-            financialAccounts = financialAccountDao.getAllAccounts().first().map { it.toDomain() }
+            financialAccounts = financialAccountDao.getAllAccounts().first().map { it.toDomain() },
+            expenseCategories = expenseCategoryDao.getAllCategories().first().map { it.toDomain() },
+            stocktakes = stocktakeDao.getAllStocktakes().first().map { it.toDomain() }
         )
         return backupAdapter.toJson(backupData)
     }
@@ -38,7 +42,9 @@ class BackupRepositoryImpl @Inject constructor(
             products = backupData.products.map { it.toEntity() },
             parties = backupData.parties.map { it.toEntity() },
             transactions = backupData.transactions.map { it.toEntity() },
-            financialAccounts = backupData.financialAccounts.map { it.toEntity() }
+            financialAccounts = backupData.financialAccounts.map { it.toEntity() },
+            expenseCategories = backupData.expenseCategories.map { it.toEntity() },
+            stocktakes = backupData.stocktakes.map { it.toEntity() }
         )
     }
 }

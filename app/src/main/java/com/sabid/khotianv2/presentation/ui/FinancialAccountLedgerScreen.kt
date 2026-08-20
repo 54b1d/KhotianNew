@@ -1,5 +1,6 @@
 package com.sabid.khotianv2.presentation.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,7 +25,8 @@ import java.util.*
 @Composable
 fun FinancialAccountLedgerScreen(
     viewModel: FinancialAccountLedgerViewModel,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onTransactionClick: (Long) -> Unit
 ) {
     val transactions by viewModel.transactions.collectAsState()
     val account by viewModel.account.collectAsState()
@@ -61,14 +63,14 @@ fun FinancialAccountLedgerScreen(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             items(transactions) { item ->
-                AccountTransactionRow(item, account?.id ?: 0L, allAccounts)
+                AccountTransactionRow(item, account?.id ?: 0L, allAccounts, onClick = { onTransactionClick(item.transaction.id) })
             }
         }
     }
 }
 
 @Composable
-fun AccountTransactionRow(item: TransactionItem, currentAccountId: Long, allAccounts: List<FinancialAccount>) {
+fun AccountTransactionRow(item: TransactionItem, currentAccountId: Long, allAccounts: List<FinancialAccount>, onClick: () -> Unit) {
     val transaction = item.transaction
     val dateFormat = SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault())
     val dateString = dateFormat.format(Date(transaction.timestamp))
@@ -89,7 +91,9 @@ fun AccountTransactionRow(item: TransactionItem, currentAccountId: Long, allAcco
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),

@@ -6,6 +6,7 @@ import java.math.BigDecimal
 
 interface FinancialAccountRepository {
     fun getAllAccounts(): Flow<List<FinancialAccount>>
+    fun getAccountsByType(type: com.sabid.khotianv2.domain.model.FinancialAccountType): Flow<List<FinancialAccount>>
     fun getAccountById(id: Long): Flow<FinancialAccount?>
     suspend fun getAccountByIdSync(id: Long): FinancialAccount?
     suspend fun addAccount(account: FinancialAccount): Long

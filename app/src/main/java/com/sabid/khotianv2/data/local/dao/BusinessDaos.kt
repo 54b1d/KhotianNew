@@ -8,8 +8,27 @@ import com.sabid.khotianv2.data.local.entity.ProductEntity
 import com.sabid.khotianv2.data.local.entity.TransactionEntity
 import com.sabid.khotianv2.data.local.entity.FinancialAccountEntity
 import com.sabid.khotianv2.data.local.entity.UnitEntity
+import com.sabid.khotianv2.data.local.entity.ExpenseCategoryEntity
 import java.math.BigDecimal
 import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface ExpenseCategoryDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCategory(category: ExpenseCategoryEntity): Long
+
+    @Query("SELECT * FROM expense_categories")
+    fun getAllCategories(): Flow<List<ExpenseCategoryEntity>>
+
+    @Query("SELECT * FROM expense_categories WHERE id = :id")
+    suspend fun getCategoryById(id: Long): ExpenseCategoryEntity?
+
+    @Update
+    suspend fun updateCategory(category: ExpenseCategoryEntity)
+
+    @Delete
+    suspend fun deleteCategory(category: ExpenseCategoryEntity)
+}
 
 @Dao
 interface UnitDao {
@@ -70,6 +89,9 @@ interface FinancialAccountDao {
     @Query("SELECT * FROM financial_accounts")
     fun getAllAccounts(): Flow<List<FinancialAccountEntity>>
 
+    @Query("SELECT * FROM financial_accounts WHERE type = :type ORDER BY currentBalance DESC")
+    fun getAccountsByType(type: com.sabid.khotianv2.data.local.entity.FinancialAccountType): Flow<List<FinancialAccountEntity>>
+
     @Query("SELECT * FROM financial_accounts WHERE id = :id")
     suspend fun getAccountById(id: Long): FinancialAccountEntity?
 
@@ -106,6 +128,9 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions")
     fun getAllTransactions(): Flow<List<TransactionEntity>>
 
+    @Query("SELECT * FROM transactions WHERE timestamp >= :startTime AND timestamp <= :endTime ORDER BY timestamp ASC")
+    fun getTransactionsByDate(startTime: Long, endTime: Long): Flow<List<TransactionEntity>>
+
     @Query("SELECT * FROM transactions WHERE id = :id")
     suspend fun getTransactionById(id: Long): TransactionEntity?
 
@@ -135,4 +160,19 @@ interface AuditLogDao {
 
     @Query("SELECT * FROM audit_logs ORDER BY timestamp DESC")
     fun getAllLogs(): Flow<List<AuditLogEntity>>
+}
+
+@Dao
+interface StocktakeDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertStocktake(stocktake: com.sabid.khotianv2.data.local.entity.StocktakeEntity): Long
+
+    @Query("SELECT * FROM stocktakes ORDER BY timestamp DESC")
+    fun getAllStocktakes(): Flow<List<com.sabid.khotianv2.data.local.entity.StocktakeEntity>>
+
+    @Query("SELECT * FROM stocktakes WHERE productId = :productId ORDER BY timestamp DESC LIMIT 1")
+    suspend fun getLatestStocktakeForProduct(productId: Long): com.sabid.khotianv2.data.local.entity.StocktakeEntity?
+
+    @Query("SELECT * FROM stocktakes WHERE productId = :productId ORDER BY timestamp DESC LIMIT 1")
+    fun getLatestStocktakeForProductFlow(productId: Long): Flow<com.sabid.khotianv2.data.local.entity.StocktakeEntity?>
 }

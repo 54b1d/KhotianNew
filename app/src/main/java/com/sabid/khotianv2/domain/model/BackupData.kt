@@ -8,5 +8,7 @@ data class BackupData(
     val products: List<Product>,
     val parties: List<Party>,
     val transactions: List<Transaction>,
-    val financialAccounts: List<FinancialAccount> = emptyList()
+    val financialAccounts: List<FinancialAccount> = emptyList(),
+    val expenseCategories: List<ExpenseCategory> = emptyList(),
+    val stocktakes: List<Stocktake> = emptyList()
 )

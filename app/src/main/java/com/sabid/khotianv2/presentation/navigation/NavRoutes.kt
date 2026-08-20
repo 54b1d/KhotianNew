@@ -15,13 +15,19 @@ sealed interface NavRoutes : NavKey {
     data object Dashboard : NavRoutes
 
     @Serializable
+    data object Home : NavRoutes
+
+    @Serializable
+    data object Parties : NavRoutes
+
+    @Serializable
     data class PartyLedger(val partyId: Long) : NavRoutes
 
     @Serializable
     data object PartyEntry : NavRoutes
 
     @Serializable
-    data class TransactionEntry(val partyId: Long? = null) : NavRoutes
+    data class TransactionEntry(val partyId: Long? = null, val transactionId: Long? = null) : NavRoutes
 
     @Serializable
     data object ProductEntry : NavRoutes
@@ -40,4 +46,10 @@ sealed interface NavRoutes : NavKey {
 
     @Serializable
     data class FinancialAccountLedger(val accountId: Long) : NavRoutes
+
+    @Serializable
+    data object ProfitLoss : NavRoutes
+
+    @Serializable
+    data object Stocktake : NavRoutes
 }

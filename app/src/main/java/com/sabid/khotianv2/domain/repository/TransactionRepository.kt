@@ -9,6 +9,8 @@ interface TransactionRepository {
     fun getTransactionsByAccount(accountId: Long): Flow<List<Transaction>>
     fun getPartyBalance(partyId: Long): Flow<BigDecimal>
     fun getUnifiedLedger(partyId: Long): Flow<List<Transaction>>
+    fun getAllTransactions(): Flow<List<Transaction>>
+    fun getTransactionsByDate(startTime: Long, endTime: Long): Flow<List<Transaction>>
     suspend fun addTransaction(transaction: Transaction): Long
     suspend fun updateTransaction(transaction: Transaction)
     suspend fun deleteTransaction(transaction: Transaction)

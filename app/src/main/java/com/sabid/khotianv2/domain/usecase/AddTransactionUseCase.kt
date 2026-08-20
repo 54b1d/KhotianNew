@@ -15,11 +15,13 @@ class AddTransactionUseCase @Inject constructor(
     private val sessionManager: SessionManager
 ) {
     suspend operator fun invoke(
+        transactionId: Long? = null,
         partyId: Long? = null,
         productId: Long? = null,
         unitId: Long? = null,
         financialAccountId: Long? = null,
         toFinancialAccountId: Long? = null,
+        expenseCategoryId: Long? = null,
         quantity: BigDecimal? = null,
         baseQuantity: BigDecimal? = null,
         rate: BigDecimal? = null,
@@ -33,12 +35,29 @@ class AddTransactionUseCase @Inject constructor(
             return Result.failure(Exception("Permission denied"))
         }
 
+        // 1. Fetch OLD transaction if editing
+        val oldTransaction = if (transactionId != null) {
+            transactionRepository.getTransactionById(transactionId)
+        } else null
+
+        // Validation
         if (businessType == BusinessTransactionType.TRANSFER) {
             if (financialAccountId == null || toFinancialAccountId == null) {
                 return Result.failure(Exception("Both source and destination accounts must be selected for transfer"))
             }
             if (financialAccountId == toFinancialAccountId) {
                 return Result.failure(Exception("Source and destination accounts must be different"))
+            }
+        } else if (businessType == BusinessTransactionType.EXPENSE) {
+            if (expenseCategoryId == null) {
+                return Result.failure(Exception("Expense category must be selected"))
+            }
+            if (financialAccountId == null) {
+                return Result.failure(Exception("Payment account must be selected"))
+            }
+        } else if (businessType == BusinessTransactionType.STOCK_ADJUSTMENT) {
+            if (productId == null) {
+                return Result.failure(Exception("Product must be selected for stock adjustment"))
             }
         } else {
             if (partyId == null) {
@@ -51,11 +70,13 @@ class AddTransactionUseCase @Inject constructor(
 
         val userId = sessionManager.currentUserId.value ?: return Result.failure(Exception("User not authenticated"))
 
-        // Mapping Business Type to DEBIT/CREDIT/TRANSFER
+        // Mapping Business Type to DEBIT/CREDIT/TRANSFER/EXPENSE/STOCK_ADJUSTMENT
         val type = when (businessType) {
             BusinessTransactionType.SALE, BusinessTransactionType.PAYMENT_MADE -> TransactionType.DEBIT
             BusinessTransactionType.PURCHASE, BusinessTransactionType.PAYMENT_RECEIVED -> TransactionType.CREDIT
             BusinessTransactionType.TRANSFER -> TransactionType.TRANSFER
+            BusinessTransactionType.EXPENSE -> TransactionType.EXPENSE
+            BusinessTransactionType.STOCK_ADJUSTMENT -> TransactionType.STOCK_ADJUSTMENT
         }
 
         // Net Cost Logic
@@ -65,12 +86,38 @@ class AddTransactionUseCase @Inject constructor(
             amount
         }
 
+        // 2. Reverse effects of OLD transaction
+        if (oldTransaction != null) {
+            if (oldTransaction.businessType == BusinessTransactionType.TRANSFER) {
+                if (oldTransaction.financialAccountId != null && oldTransaction.toFinancialAccountId != null) {
+                    financialAccountRepository.transferBalance(
+                        oldTransaction.toFinancialAccountId,
+                        oldTransaction.financialAccountId,
+                        oldTransaction.amount
+                    )
+                }
+            } else if (oldTransaction.financialAccountId != null) {
+                val oldBalanceChange = when (oldTransaction.businessType) {
+                    BusinessTransactionType.PAYMENT_RECEIVED -> oldTransaction.amount
+                    BusinessTransactionType.PAYMENT_MADE, BusinessTransactionType.EXPENSE -> oldTransaction.amount.negate()
+                    else -> BigDecimal.ZERO
+                }
+                if (oldBalanceChange != BigDecimal.ZERO) {
+                    financialAccountRepository.updateBalance(oldTransaction.financialAccountId, oldBalanceChange.negate())
+                }
+            }
+            // Product Stock is calculated on-the-fly, so no manual reversal needed here if using the transactions table.
+            // If it was stored, we would reverse it here.
+        }
+
         val transaction = Transaction(
+            id = transactionId ?: 0,
             partyId = partyId,
             productId = productId,
             unitId = unitId,
             financialAccountId = financialAccountId,
             toFinancialAccountId = toFinancialAccountId,
+            expenseCategoryId = expenseCategoryId,
             quantity = quantity,
             baseQuantity = baseQuantity,
             rate = rate,
@@ -81,12 +128,19 @@ class AddTransactionUseCase @Inject constructor(
             type = type,
             businessType = businessType,
             note = note,
-            createdBy = userId
+            createdBy = userId,
+            timestamp = oldTransaction?.timestamp ?: System.currentTimeMillis()
         )
 
-        val transactionId = transactionRepository.addTransaction(transaction)
+        // 3. Save / Update Transaction
+        val finalTransactionId = if (transactionId != null) {
+            transactionRepository.updateTransaction(transaction)
+            transactionId
+        } else {
+            transactionRepository.addTransaction(transaction)
+        }
 
-        // Update Financial Account Balance
+        // 4. Apply NEW effects
         if (businessType == BusinessTransactionType.TRANSFER) {
             if (financialAccountId != null && toFinancialAccountId != null) {
                 financialAccountRepository.transferBalance(financialAccountId, toFinancialAccountId, amount)
@@ -94,7 +148,7 @@ class AddTransactionUseCase @Inject constructor(
         } else if (financialAccountId != null) {
             val balanceChange = when (businessType) {
                 BusinessTransactionType.PAYMENT_RECEIVED -> amount
-                BusinessTransactionType.PAYMENT_MADE -> amount.negate()
+                BusinessTransactionType.PAYMENT_MADE, BusinessTransactionType.EXPENSE -> amount.negate()
                 else -> BigDecimal.ZERO
             }
             if (balanceChange != BigDecimal.ZERO) {
@@ -102,6 +156,6 @@ class AddTransactionUseCase @Inject constructor(
             }
         }
 
-        return Result.success(transactionId)
+        return Result.success(finalTransactionId)
     }
 }

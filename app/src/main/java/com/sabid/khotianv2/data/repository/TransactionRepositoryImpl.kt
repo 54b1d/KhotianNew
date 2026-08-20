@@ -51,6 +51,16 @@ class TransactionRepositoryImpl @Inject constructor(
             list.map { it.toDomain() }
         }
 
+    override fun getAllTransactions(): Flow<List<Transaction>> =
+        transactionDao.getAllTransactions().map { list ->
+            list.map { it.toDomain() }
+        }
+
+    override fun getTransactionsByDate(startTime: Long, endTime: Long): Flow<List<Transaction>> =
+        transactionDao.getTransactionsByDate(startTime, endTime).map { list ->
+            list.map { it.toDomain() }
+        }
+
     override suspend fun addTransaction(transaction: Transaction): Long {
         val id = transactionDao.insertTransaction(transaction.toEntity())
         val userId = sessionManager.currentUserId.value ?: "unknown"

@@ -36,7 +36,7 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             val userId = sessionManager.currentUserId.value
             if (userId != null) {
-                _startRoute.value = NavRoutes.Dashboard
+                _startRoute.value = NavRoutes.Home
             } else {
                 if (userRepository.hasUsers()) {
                     _startRoute.value = NavRoutes.Login

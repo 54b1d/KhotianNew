@@ -76,4 +76,16 @@ abstract class RepositoryModule {
     abstract fun bindBackupRepository(
         backupRepositoryImpl: BackupRepositoryImpl
     ): BackupRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindExpenseCategoryRepository(
+        expenseCategoryRepositoryImpl: ExpenseCategoryRepositoryImpl
+    ): ExpenseCategoryRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindStocktakeRepository(
+        stocktakeRepositoryImpl: StocktakeRepositoryImpl
+    ): StocktakeRepository
 }

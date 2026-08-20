@@ -50,4 +50,10 @@ object DatabaseModule {
 
     @Provides
     fun provideFinancialAccountDao(db: AppDatabase): FinancialAccountDao = db.financialAccountDao()
+
+    @Provides
+    fun provideExpenseCategoryDao(db: AppDatabase): ExpenseCategoryDao = db.expenseCategoryDao()
+
+    @Provides
+    fun provideStocktakeDao(db: AppDatabase): StocktakeDao = db.stocktakeDao()
 }

@@ -14,6 +14,12 @@ data class Party(
 )
 
 @JsonClass(generateAdapter = true)
+data class ExpenseCategory(
+    val id: Long = 0,
+    val name: String
+)
+
+@JsonClass(generateAdapter = true)
 data class AppUnit(
     val id: Long = 0,
     val name: String,
@@ -51,6 +57,7 @@ data class Transaction(
     val unitId: Long? = null,
     val financialAccountId: Long? = null,
     val toFinancialAccountId: Long? = null,
+    val expenseCategoryId: Long? = null,
     val quantity: BigDecimal? = null,
     val baseQuantity: BigDecimal? = null,
     val rate: BigDecimal? = null,
@@ -66,11 +73,11 @@ data class Transaction(
 )
 
 enum class TransactionType {
-    DEBIT, CREDIT, TRANSFER
+    DEBIT, CREDIT, TRANSFER, EXPENSE, STOCK_ADJUSTMENT
 }
 
 enum class BusinessTransactionType {
-    PURCHASE, SALE, PAYMENT_MADE, PAYMENT_RECEIVED, TRANSFER
+    PURCHASE, SALE, PAYMENT_MADE, PAYMENT_RECEIVED, TRANSFER, EXPENSE, STOCK_ADJUSTMENT
 }
 
 enum class FreightType {
@@ -107,3 +114,24 @@ data class AuditLog(
 enum class AuditAction {
     INSERT, UPDATE, DELETE
 }
+
+data class ProfitLossReport(
+    val totalSales: BigDecimal,
+    val totalPurchases: BigDecimal,
+    val totalExpenses: BigDecimal,
+    val openingStockValue: BigDecimal,
+    val closingStockValue: BigDecimal,
+    val costOfGoodsSold: BigDecimal,
+    val grossProfit: BigDecimal,
+    val expensesByCategory: Map<String, BigDecimal>,
+    val netProfit: BigDecimal
+)
+
+@JsonClass(generateAdapter = true)
+data class Stocktake(
+    val id: Long = 0,
+    val productId: Long,
+    val physicalQuantity: BigDecimal,
+    val unitPrice: BigDecimal,
+    val timestamp: Long = System.currentTimeMillis()
+)

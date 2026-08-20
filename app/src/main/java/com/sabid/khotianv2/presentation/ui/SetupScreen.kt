@@ -122,6 +122,22 @@ fun SetupScreen(
                     Text("Initialize System")
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedButton(
+                onClick = { viewModel.bypassAndPreload() },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.secondary
+                ),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.secondary
+                )
+            ) {
+                Text("Test: Bypass & Preload Data")
+            }
         }
     }
 }

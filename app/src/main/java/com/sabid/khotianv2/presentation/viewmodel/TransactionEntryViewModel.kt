@@ -11,6 +11,8 @@ import com.sabid.khotianv2.domain.repository.BusinessRepository
 import com.sabid.khotianv2.domain.repository.FinancialAccountRepository
 import com.sabid.khotianv2.domain.repository.ProductRepository
 import com.sabid.khotianv2.domain.repository.UnitRepository
+import com.sabid.khotianv2.domain.repository.ExpenseCategoryRepository
+import com.sabid.khotianv2.domain.repository.TransactionRepository
 import com.sabid.khotianv2.domain.usecase.AddTransactionUseCase
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
@@ -24,11 +26,14 @@ import java.math.BigDecimal
 
 @HiltViewModel(assistedFactory = TransactionEntryViewModel.Factory::class)
 class TransactionEntryViewModel @AssistedInject constructor(
-    @Assisted private val initialPartyId: Long?,
+    @Assisted("partyId") private val initialPartyId: Long?,
+    @Assisted("transactionId") val transactionId: Long?,
     private val businessRepository: BusinessRepository,
     private val productRepository: ProductRepository,
     private val unitRepository: UnitRepository,
     private val financialAccountRepository: FinancialAccountRepository,
+    private val expenseCategoryRepository: ExpenseCategoryRepository,
+    private val transactionRepository: TransactionRepository,
     private val addTransactionUseCase: AddTransactionUseCase,
     private val permissionManager: PermissionManager
 ) : ViewModel() {
@@ -45,6 +50,9 @@ class TransactionEntryViewModel @AssistedInject constructor(
     val financialAccounts: StateFlow<List<FinancialAccount>> = financialAccountRepository.getAllAccounts()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val expenseCategories: StateFlow<List<ExpenseCategory>> = expenseCategoryRepository.getAllCategories()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val userPermissions: StateFlow<UserPermissions> = permissionManager.userPermissions
 
     var partyId by mutableStateOf<Long?>(initialPartyId)
@@ -52,6 +60,7 @@ class TransactionEntryViewModel @AssistedInject constructor(
     var unitId by mutableStateOf<Long?>(null)
     var financialAccountId by mutableStateOf<Long?>(null)
     var toFinancialAccountId by mutableStateOf<Long?>(null)
+    var expenseCategoryId by mutableStateOf<Long?>(null)
     var quantity by mutableStateOf("0")
     var rate by mutableStateOf("0")
     var amountText by mutableStateOf("0")
@@ -59,6 +68,56 @@ class TransactionEntryViewModel @AssistedInject constructor(
     var freightType by mutableStateOf(FreightType.BORN_BY_SELLER)
     var businessType by mutableStateOf(BusinessTransactionType.SALE)
     var note by mutableStateOf("")
+
+    var isEditing by mutableStateOf(false)
+        private set
+
+    init {
+        // Data loading is handled by TransactionEntryScreen using LaunchedEffect 
+        // to ensure fresh data when the same ViewModel instance is reused 
+        // (though we also use unique keys in HiltViewModel).
+    }
+
+    fun loadTransaction(id: Long?) {
+        // Reset state to defaults or initial values
+        partyId = initialPartyId
+        productId = null
+        unitId = null
+        financialAccountId = null
+        toFinancialAccountId = null
+        expenseCategoryId = null
+        quantity = "0"
+        rate = "0"
+        amountText = "0"
+        freightAmountText = "0"
+        freightType = FreightType.BORN_BY_SELLER
+        businessType = BusinessTransactionType.SALE
+        note = ""
+        
+        if (id != null) {
+            isEditing = true
+            viewModelScope.launch {
+                val tx = transactionRepository.getTransactionById(id)
+                if (tx != null) {
+                    partyId = tx.partyId
+                    productId = tx.productId
+                    unitId = tx.unitId
+                    financialAccountId = tx.financialAccountId
+                    toFinancialAccountId = tx.toFinancialAccountId
+                    expenseCategoryId = tx.expenseCategoryId
+                    quantity = tx.quantity?.toPlainString() ?: "0"
+                    rate = tx.rate?.toPlainString() ?: "0"
+                    amountText = tx.amount.toPlainString()
+                    freightAmountText = tx.freightAmount.toPlainString()
+                    freightType = tx.freightType
+                    businessType = tx.businessType
+                    note = tx.note ?: ""
+                }
+            }
+        } else {
+            isEditing = false
+        }
+    }
 
     val amount: BigDecimal
         get() = try {
@@ -103,13 +162,15 @@ class TransactionEntryViewModel @AssistedInject constructor(
         viewModelScope.launch {
             isSubmitting = true
             val result = addTransactionUseCase(
+                transactionId = transactionId,
                 partyId = partyId,
                 productId = productId,
                 unitId = unitId,
                 financialAccountId = financialAccountId,
                 toFinancialAccountId = toFinancialAccountId,
-                quantity = if (businessType == BusinessTransactionType.PURCHASE || businessType == BusinessTransactionType.SALE) try { BigDecimal(quantity) } catch(e: Exception) { null } else null,
-                baseQuantity = if (businessType == BusinessTransactionType.PURCHASE || businessType == BusinessTransactionType.SALE) baseQuantity else null,
+                expenseCategoryId = expenseCategoryId,
+                quantity = if (businessType == BusinessTransactionType.PURCHASE || businessType == BusinessTransactionType.SALE || businessType == BusinessTransactionType.STOCK_ADJUSTMENT) try { BigDecimal(quantity) } catch(e: Exception) { null } else null,
+                baseQuantity = if (businessType == BusinessTransactionType.PURCHASE || businessType == BusinessTransactionType.SALE || businessType == BusinessTransactionType.STOCK_ADJUSTMENT) baseQuantity else null,
                 rate = if (businessType == BusinessTransactionType.PURCHASE || businessType == BusinessTransactionType.SALE) try { BigDecimal(rate) } catch(e: Exception) { null } else null,
                 amount = amount,
                 freightAmount = freightAmount,
@@ -124,6 +185,9 @@ class TransactionEntryViewModel @AssistedInject constructor(
 
     @AssistedFactory
     interface Factory {
-        fun create(initialPartyId: Long?): TransactionEntryViewModel
+        fun create(
+            @Assisted("partyId") initialPartyId: Long?,
+            @Assisted("transactionId") transactionId: Long?
+        ): TransactionEntryViewModel
     }
 }

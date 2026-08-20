@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -25,16 +26,17 @@ import com.sabid.khotianv2.presentation.viewmodel.DashboardViewModel
 @Composable
 fun DashboardScreen(
     viewModel: DashboardViewModel,
-    onPartyClick: (Long) -> Unit,
     onFinancialAccountClick: (Long) -> Unit,
     onManageAccountsClick: () -> Unit,
     onAddPartyClick: () -> Unit,
     onAddTransactionClick: () -> Unit,
     onCrushingEntryClick: () -> Unit,
     onUnitManagementClick: () -> Unit,
-    onBackupClick: () -> Unit
+    onBackupClick: () -> Unit,
+    onProfitLossClick: () -> Unit,
+    onStocktakeClick: () -> Unit,
+    onBackClick: () -> Unit
 ) {
-    val parties by viewModel.parties.collectAsState()
     val productStocks by viewModel.productStocks.collectAsState()
     val financialAccounts by viewModel.financialAccounts.collectAsState()
     val permissions by viewModel.userPermissions.collectAsState()
@@ -42,7 +44,12 @@ fun DashboardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Dashboard", style = MaterialTheme.typography.titleMedium) }
+                title = { Text("Dashboard", style = MaterialTheme.typography.titleMedium) },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                    }
+                }
             )
         },
         floatingActionButton = {
@@ -70,6 +77,18 @@ fun DashboardScreen(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer
                     ) {
                         Icon(Icons.Rounded.Backup, contentDescription = "Backup")
+                    }
+                    SmallFloatingActionButton(
+                        onClick = onProfitLossClick,
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Icon(Icons.Rounded.Assessment, contentDescription = "Profit & Loss")
+                    }
+                    SmallFloatingActionButton(
+                        onClick = onStocktakeClick,
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Icon(Icons.Rounded.Inventory, contentDescription = "Inventory Check")
                     }
                     SmallFloatingActionButton(
                         onClick = onUnitManagementClick,
@@ -124,17 +143,6 @@ fun DashboardScreen(
                 items(productStocks) { stock ->
                     StockCard(stock = stock)
                 }
-            }
-
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Text(
-                    "Parties",
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.padding(8.dp)
-                )
-            }
-            items(parties) { party ->
-                PartyCard(party = party, onClick = { onPartyClick(party.id) })
             }
         }
     }
@@ -208,44 +216,6 @@ private fun StockCard(stock: ProductStock) {
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.primary
             )
-        }
-    }
-}
-
-@Composable
-private fun PartyCard(party: Party, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
-    ) {
-        Row(
-            modifier = Modifier.padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                Icons.Rounded.Person,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Column {
-                Text(
-                    text = party.name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1
-                )
-                Text(
-                    text = party.type,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
         }
     }
 }

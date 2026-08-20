@@ -9,6 +9,7 @@ import com.sabid.khotianv2.data.local.entity.PartyEntity
 import com.sabid.khotianv2.data.local.entity.ProductEntity
 import com.sabid.khotianv2.data.local.entity.TransactionEntity
 import com.sabid.khotianv2.data.local.entity.UnitEntity
+import com.sabid.khotianv2.data.local.entity.ExpenseCategoryEntity
 
 @Dao
 interface DataImportDao {
@@ -27,18 +28,28 @@ interface DataImportDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFinancialAccounts(accounts: List<FinancialAccountEntity>)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertExpenseCategories(categories: List<ExpenseCategoryEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertStocktakes(stocktakes: List<com.sabid.khotianv2.data.local.entity.StocktakeEntity>)
+
     @Transaction
     suspend fun importAll(
         units: List<UnitEntity>,
         products: List<ProductEntity>,
         parties: List<PartyEntity>,
         transactions: List<TransactionEntity>,
-        financialAccounts: List<FinancialAccountEntity>
+        financialAccounts: List<FinancialAccountEntity>,
+        expenseCategories: List<ExpenseCategoryEntity>,
+        stocktakes: List<com.sabid.khotianv2.data.local.entity.StocktakeEntity> = emptyList()
     ) {
         insertUnits(units)
         insertProducts(products)
         insertParties(parties)
         insertFinancialAccounts(financialAccounts)
+        insertExpenseCategories(expenseCategories)
+        insertStocktakes(stocktakes)
         insertTransactions(transactions)
     }
 }

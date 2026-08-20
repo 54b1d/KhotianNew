@@ -27,6 +27,13 @@ data class UnitEntity(
 )
 
 @JsonClass(generateAdapter = true)
+@Entity(tableName = "expense_categories")
+data class ExpenseCategoryEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String
+)
+
+@JsonClass(generateAdapter = true)
 @Entity(
     tableName = "products",
     foreignKeys = [
@@ -93,6 +100,12 @@ enum class FinancialAccountType {
             parentColumns = ["id"],
             childColumns = ["toFinancialAccountId"],
             onDelete = ForeignKey.SET_NULL
+        ),
+        ForeignKey(
+            entity = ExpenseCategoryEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["expenseCategoryId"],
+            onDelete = ForeignKey.SET_NULL
         )
     ]
 )
@@ -103,6 +116,7 @@ data class TransactionEntity(
     val unitId: Long? = null,
     val financialAccountId: Long? = null,
     val toFinancialAccountId: Long? = null,
+    val expenseCategoryId: Long? = null,
     val quantity: BigDecimal? = null,
     val baseQuantity: BigDecimal? = null,
     val rate: BigDecimal? = null,
@@ -118,11 +132,11 @@ data class TransactionEntity(
 )
 
 enum class TransactionType {
-    DEBIT, CREDIT, TRANSFER
+    DEBIT, CREDIT, TRANSFER, EXPENSE, STOCK_ADJUSTMENT
 }
 
 enum class BusinessTransactionType {
-    PURCHASE, SALE, PAYMENT_MADE, PAYMENT_RECEIVED, TRANSFER
+    PURCHASE, SALE, PAYMENT_MADE, PAYMENT_RECEIVED, TRANSFER, EXPENSE, STOCK_ADJUSTMENT
 }
 
 enum class FreightType {
@@ -143,4 +157,24 @@ data class CrushingBatchEntity(
     val crushingCharge: BigDecimal = BigDecimal.ZERO,
     val timestamp: Long = System.currentTimeMillis(),
     val note: String?
+)
+
+@JsonClass(generateAdapter = true)
+@Entity(
+    tableName = "stocktakes",
+    foreignKeys = [
+        ForeignKey(
+            entity = ProductEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["productId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
+)
+data class StocktakeEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val productId: Long,
+    val physicalQuantity: BigDecimal,
+    val unitPrice: BigDecimal,
+    val timestamp: Long = System.currentTimeMillis()
 )

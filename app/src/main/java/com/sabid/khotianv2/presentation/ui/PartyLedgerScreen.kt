@@ -1,6 +1,7 @@
 package com.sabid.khotianv2.presentation.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -28,7 +29,8 @@ import java.util.*
 @Composable
 fun PartyLedgerScreen(
     viewModel: LedgerViewModel,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onTransactionClick: (Long) -> Unit
 ) {
     val transactions by viewModel.transactions.collectAsState()
     val totalBalance by viewModel.balance.collectAsState()
@@ -60,7 +62,7 @@ fun PartyLedgerScreen(
                 contentPadding = PaddingValues(bottom = 16.dp)
             ) {
                 items(transactions) { item ->
-                    LedgerRow(item = item)
+                    LedgerRow(item = item, onClick = { onTransactionClick(item.transaction.id) })
                     HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
                 }
             }
@@ -99,11 +101,12 @@ private fun HeaderText(text: String, modifier: Modifier, textAlign: TextAlign = 
 private val dateFormat = SimpleDateFormat("dd/MM/yy", Locale.getDefault())
 
 @Composable
-private fun LedgerRow(item: TransactionItem) {
+private fun LedgerRow(item: TransactionItem, onClick: () -> Unit) {
     val transaction = item.transaction
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -118,6 +121,8 @@ private fun LedgerRow(item: TransactionItem) {
             BusinessTransactionType.PAYMENT_MADE -> "PayM"
             BusinessTransactionType.PAYMENT_RECEIVED -> "PayR"
             BusinessTransactionType.TRANSFER -> "Trns"
+            BusinessTransactionType.EXPENSE -> "Expn"
+            BusinessTransactionType.STOCK_ADJUSTMENT -> "Adj"
         }
         Text(
             text = typeLabel,
