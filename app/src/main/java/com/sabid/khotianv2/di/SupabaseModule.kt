@@ -15,6 +15,8 @@ import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.storage.Storage
 import java.math.BigDecimal
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import javax.inject.Singleton
 
 @Module
@@ -26,6 +28,7 @@ object SupabaseModule {
     fun provideMoshi(): Moshi {
         return Moshi.Builder()
             .add(BigDecimalAdapter())
+            .add(LocalDateAdapter())
             .addLast(KotlinJsonAdapterFactory())
             .build()
     }
@@ -48,4 +51,14 @@ object SupabaseModule {
 class BigDecimalAdapter {
     @ToJson fun toJson(value: BigDecimal): String = value.toPlainString()
     @FromJson fun fromJson(value: String): BigDecimal = BigDecimal(value)
+}
+
+class LocalDateAdapter {
+    private val formatter = DateTimeFormatter.ISO_LOCAL_DATE
+
+    @ToJson
+    fun toJson(value: LocalDate): String = value.format(formatter)
+
+    @FromJson
+    fun fromJson(value: String): LocalDate = LocalDate.parse(value, formatter)
 }

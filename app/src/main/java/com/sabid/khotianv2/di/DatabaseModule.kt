@@ -41,4 +41,13 @@ object DatabaseModule {
 
     @Provides
     fun provideAuditLogDao(db: AppDatabase): AuditLogDao = db.auditLogDao()
+
+    @Provides
+    fun provideUnitDao(db: AppDatabase): UnitDao = db.unitDao()
+
+    @Provides
+    fun provideDataImportDao(db: AppDatabase): DataImportDao = db.dataImportDao()
+
+    @Provides
+    fun provideFinancialAccountDao(db: AppDatabase): FinancialAccountDao = db.financialAccountDao()
 }

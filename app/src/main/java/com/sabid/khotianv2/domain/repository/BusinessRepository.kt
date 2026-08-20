@@ -8,6 +8,7 @@ import java.math.BigDecimal
 
 interface BusinessRepository {
     fun getParties(): Flow<List<Party>>
+    fun getParty(id: Long): Flow<Party?>
     fun getTransactions(partyId: Long): Flow<List<Transaction>>
     fun getPartyBalance(partyId: Long): Flow<BigDecimal>
     suspend fun addTransaction(transaction: Transaction): Result<Long>

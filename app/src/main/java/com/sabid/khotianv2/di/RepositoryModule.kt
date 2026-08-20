@@ -58,4 +58,22 @@ abstract class RepositoryModule {
     abstract fun bindAuditLogRepository(
         auditLogRepositoryImpl: AuditLogRepositoryImpl
     ): AuditLogRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindUnitRepository(
+        unitRepositoryImpl: UnitRepositoryImpl
+    ): UnitRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindFinancialAccountRepository(
+        financialAccountRepositoryImpl: FinancialAccountRepositoryImpl
+    ): FinancialAccountRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindBackupRepository(
+        backupRepositoryImpl: BackupRepositoryImpl
+    ): BackupRepository
 }

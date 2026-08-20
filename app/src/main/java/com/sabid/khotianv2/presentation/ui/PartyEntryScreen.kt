@@ -52,8 +52,9 @@ fun PartyEntryScreen(
         Column(
             modifier = Modifier
                 .padding(padding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedTextField(
@@ -79,6 +80,15 @@ fun PartyEntryScreen(
                 label = { Text("Address (Optional)") },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2
+            )
+
+            OutlinedTextField(
+                value = viewModel.openingBalance,
+                onValueChange = { viewModel.openingBalance = it },
+                label = { Text("Opening Balance (Optional)") },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true
             )
 
             Text("Party Type", style = MaterialTheme.typography.labelLarge)

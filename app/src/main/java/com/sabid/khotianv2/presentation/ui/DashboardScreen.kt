@@ -3,13 +3,11 @@ package com.sabid.khotianv2.presentation.ui
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Factory
-import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material.icons.rounded.PersonAdd
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -20,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.sabid.khotianv2.domain.model.Party
 import com.sabid.khotianv2.domain.model.PermissionType
+import com.sabid.khotianv2.domain.repository.ProductStock
 import com.sabid.khotianv2.presentation.viewmodel.DashboardViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,11 +26,17 @@ import com.sabid.khotianv2.presentation.viewmodel.DashboardViewModel
 fun DashboardScreen(
     viewModel: DashboardViewModel,
     onPartyClick: (Long) -> Unit,
+    onFinancialAccountClick: (Long) -> Unit,
+    onManageAccountsClick: () -> Unit,
     onAddPartyClick: () -> Unit,
     onAddTransactionClick: () -> Unit,
-    onCrushingEntryClick: () -> Unit
+    onCrushingEntryClick: () -> Unit,
+    onUnitManagementClick: () -> Unit,
+    onBackupClick: () -> Unit
 ) {
     val parties by viewModel.parties.collectAsState()
+    val productStocks by viewModel.productStocks.collectAsState()
+    val financialAccounts by viewModel.financialAccounts.collectAsState()
     val permissions by viewModel.userPermissions.collectAsState()
 
     Scaffold(
@@ -55,6 +60,24 @@ fun DashboardScreen(
                 }
                 if (permissions.hasPermission(PermissionType.CAN_EDIT_TRANSACTIONS)) {
                     SmallFloatingActionButton(
+                        onClick = onManageAccountsClick,
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Icon(Icons.Rounded.AccountBalance, contentDescription = "Accounts")
+                    }
+                    SmallFloatingActionButton(
+                        onClick = onBackupClick,
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Icon(Icons.Rounded.Backup, contentDescription = "Backup")
+                    }
+                    SmallFloatingActionButton(
+                        onClick = onUnitManagementClick,
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Icon(Icons.Rounded.Settings, contentDescription = "Units")
+                    }
+                    SmallFloatingActionButton(
                         onClick = onAddPartyClick,
                         containerColor = MaterialTheme.colorScheme.tertiaryContainer
                     ) {
@@ -75,10 +98,116 @@ fun DashboardScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .imePadding()
         ) {
+            if (financialAccounts.isNotEmpty()) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Text(
+                        "Cash & Bank",
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
+                items(financialAccounts) { account ->
+                    AccountCard(account = account, onClick = { onFinancialAccountClick(account.id) })
+                }
+            }
+
+            if (productStocks.isNotEmpty()) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Text(
+                        "Product Stock",
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
+                items(productStocks) { stock ->
+                    StockCard(stock = stock)
+                }
+            }
+
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Text(
+                    "Parties",
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.padding(8.dp)
+                )
+            }
             items(parties) { party ->
                 PartyCard(party = party, onClick = { onPartyClick(party.id) })
             }
+        }
+    }
+}
+
+@Composable
+private fun AccountCard(account: com.sabid.khotianv2.domain.model.FinancialAccount, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = account.name,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(
+                    if (account.type == com.sabid.khotianv2.domain.model.FinancialAccountType.CASH) 
+                        Icons.Rounded.Payments else Icons.Rounded.AccountBalance,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = account.currentBalance.toPlainString(),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+        }
+    }
+}
+
+@Composable
+private fun StockCard(stock: ProductStock) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(8.dp)) {
+            Text(
+                text = stock.productName,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            val stockText = if (stock.stockInDefaultUnit != null) {
+                "${stock.stockInDefaultUnit.toPlainString()} ${stock.defaultUnitSymbol ?: ""}"
+            } else {
+                "${stock.baseStock.toPlainString()} kg"
+            }
+            Text(
+                text = stockText,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.primary
+            )
         }
     }
 }

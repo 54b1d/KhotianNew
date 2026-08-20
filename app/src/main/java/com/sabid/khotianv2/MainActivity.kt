@@ -113,6 +113,12 @@ class MainActivity : ComponentActivity() {
                                     onPartyClick = { partyId ->
                                         backStack.add(NavRoutes.PartyLedger(partyId))
                                     },
+                                    onFinancialAccountClick = { accountId ->
+                                        backStack.add(NavRoutes.FinancialAccountLedger(accountId))
+                                    },
+                                    onManageAccountsClick = {
+                                        backStack.add(NavRoutes.FinancialAccountEntry)
+                                    },
                                     onAddPartyClick = {
                                         backStack.add(NavRoutes.PartyEntry)
                                     },
@@ -121,6 +127,12 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onCrushingEntryClick = {
                                         backStack.add(NavRoutes.CrushingEntry)
+                                    },
+                                    onUnitManagementClick = {
+                                        backStack.add(NavRoutes.UnitEntry)
+                                    },
+                                    onBackupClick = {
+                                        backStack.add(NavRoutes.Backup)
                                     }
                                 )
                             }
@@ -176,6 +188,15 @@ class MainActivity : ComponentActivity() {
                                     onBack = { backStack.removeLastOrNull() }
                                 )
                             }
+                            entry<NavRoutes.UnitEntry>(
+                                metadata = ListDetailSceneStrategy.extraPane()
+                            ) {
+                                val viewModel: UnitEntryViewModel = hiltViewModel()
+                                UnitEntryScreen(
+                                    viewModel = viewModel,
+                                    onBack = { backStack.removeLastOrNull() }
+                                )
+                            }
                             entry<NavRoutes.CrushingEntry>(
                                 metadata = ListDetailSceneStrategy.extraPane()
                             ) {
@@ -184,6 +205,37 @@ class MainActivity : ComponentActivity() {
                                     viewModel = viewModel,
                                     onBackClick = { backStack.removeLastOrNull() },
                                     onSuccess = { backStack.removeLastOrNull() }
+                                )
+                            }
+                            entry<NavRoutes.Backup>(
+                                metadata = ListDetailSceneStrategy.extraPane()
+                            ) {
+                                val viewModel: BackupViewModel = hiltViewModel()
+                                BackupScreen(
+                                    viewModel = viewModel,
+                                    onBack = { backStack.removeLastOrNull() }
+                                )
+                            }
+                            entry<NavRoutes.FinancialAccountEntry>(
+                                metadata = ListDetailSceneStrategy.extraPane()
+                            ) {
+                                val viewModel: FinancialAccountEntryViewModel = hiltViewModel()
+                                FinancialAccountEntryScreen(
+                                    onNavigateBack = { backStack.removeLastOrNull() },
+                                    viewModel = viewModel
+                                )
+                            }
+                            entry<NavRoutes.FinancialAccountLedger>(
+                                metadata = ListDetailSceneStrategy.detailPane()
+                            ) { route ->
+                                val viewModel: FinancialAccountLedgerViewModel = hiltViewModel(
+                                    creationCallback = { factory: FinancialAccountLedgerViewModel.Factory ->
+                                        factory.create(route.accountId)
+                                    }
+                                )
+                                FinancialAccountLedgerScreen(
+                                    viewModel = viewModel,
+                                    onBackClick = { backStack.removeLastOrNull() }
                                 )
                             }
                         }

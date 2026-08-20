@@ -1,6 +1,8 @@
 package com.sabid.khotianv2.presentation.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.*
@@ -18,16 +20,22 @@ fun ProductEntryScreen(
     onBack: () -> Unit
 ) {
     var name by remember { mutableStateOf("") }
-    var unit by remember { mutableStateOf("Kg") } // Default unit
+    var selectedUnitId by remember { mutableLongStateOf(0L) }
     var category by remember { mutableStateOf("") }
+    var openingBalance by remember { mutableStateOf("") }
     
     val uiState by viewModel.uiState.collectAsState()
+    val units by viewModel.units.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    var unitDropdownExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState) {
         if (uiState is ProductEntryState.Success) {
             name = ""
             category = ""
+            selectedUnitId = 0L
+            openingBalance = ""
             snackbarHostState.showSnackbar("Product added successfully")
             viewModel.resetState()
         } else if (uiState is ProductEntryState.Error) {
@@ -52,6 +60,8 @@ fun ProductEntryScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .imePadding()
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -62,12 +72,36 @@ fun ProductEntryScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            OutlinedTextField(
-                value = unit,
-                onValueChange = { unit = it },
-                label = { Text("Unit (e.g., Kg, Liter, Bag)") },
+            ExposedDropdownMenuBox(
+                expanded = unitDropdownExpanded,
+                onExpandedChange = { unitDropdownExpanded = !unitDropdownExpanded },
                 modifier = Modifier.fillMaxWidth()
-            )
+            ) {
+                OutlinedTextField(
+                    value = units.find { it.id == selectedUnitId }?.name ?: "Select Unit",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Default Unit") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = unitDropdownExpanded) },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = unitDropdownExpanded,
+                    onDismissRequest = { unitDropdownExpanded = false }
+                ) {
+                    units.forEach { unit ->
+                        DropdownMenuItem(
+                            text = { Text(unit.name) },
+                            onClick = {
+                                selectedUnitId = unit.id
+                                unitDropdownExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
 
             OutlinedTextField(
                 value = category,
@@ -76,8 +110,23 @@ fun ProductEntryScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
+            OutlinedTextField(
+                value = openingBalance,
+                onValueChange = { openingBalance = it },
+                label = { Text("Opening Balance (Optional)") },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal)
+            )
+
             Button(
-                onClick = { viewModel.addProduct(name, unit, if (category.isBlank()) null else category) },
+                onClick = {
+                    viewModel.addProduct(
+                        name,
+                        if (selectedUnitId == 0L) null else selectedUnitId,
+                        if (category.isBlank()) null else category,
+                        openingBalance
+                    )
+                },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = uiState !is ProductEntryState.Loading
             ) {

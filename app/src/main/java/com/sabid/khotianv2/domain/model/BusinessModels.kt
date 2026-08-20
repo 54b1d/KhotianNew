@@ -9,23 +9,50 @@ data class Party(
     val name: String,
     val phoneNumber: String? = null,
     val address: String? = null,
-    val type: String
+    val type: String,
+    val openingBalance: BigDecimal = BigDecimal.ZERO
+)
+
+@JsonClass(generateAdapter = true)
+data class AppUnit(
+    val id: Long = 0,
+    val name: String,
+    val symbol: String,
+    val multiplier: BigDecimal
 )
 
 @JsonClass(generateAdapter = true)
 data class Product(
     val id: Long = 0,
     val name: String,
-    val unit: String,
-    val category: String? = null
+    val defaultUnitId: Long? = null,
+    val category: String? = null,
+    val openingBalance: BigDecimal = BigDecimal.ZERO
 )
+
+@JsonClass(generateAdapter = true)
+data class FinancialAccount(
+    val id: Long = 0,
+    val name: String,
+    val type: FinancialAccountType,
+    val openingBalance: BigDecimal = BigDecimal.ZERO,
+    val currentBalance: BigDecimal = BigDecimal.ZERO
+)
+
+enum class FinancialAccountType {
+    CASH, BANK
+}
 
 @JsonClass(generateAdapter = true)
 data class Transaction(
     val id: Long = 0,
-    val partyId: Long,
+    val partyId: Long? = null,
     val productId: Long? = null,
+    val unitId: Long? = null,
+    val financialAccountId: Long? = null,
+    val toFinancialAccountId: Long? = null,
     val quantity: BigDecimal? = null,
+    val baseQuantity: BigDecimal? = null,
     val rate: BigDecimal? = null,
     val amount: BigDecimal, // Base amount
     val freightAmount: BigDecimal = BigDecimal.ZERO,
@@ -39,11 +66,11 @@ data class Transaction(
 )
 
 enum class TransactionType {
-    DEBIT, CREDIT
+    DEBIT, CREDIT, TRANSFER
 }
 
 enum class BusinessTransactionType {
-    PURCHASE, SALE, PAYMENT_MADE, PAYMENT_RECEIVED
+    PURCHASE, SALE, PAYMENT_MADE, PAYMENT_RECEIVED, TRANSFER
 }
 
 enum class FreightType {

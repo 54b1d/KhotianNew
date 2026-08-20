@@ -12,6 +12,7 @@ import com.sabid.khotianv2.domain.repository.BusinessRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.math.BigDecimal
 import javax.inject.Inject
 
 @HiltViewModel
@@ -24,6 +25,7 @@ class PartyEntryViewModel @Inject constructor(
     var phoneNumber by mutableStateOf("")
     var address by mutableStateOf("")
     var type by mutableStateOf("CUSTOMER")
+    var openingBalance by mutableStateOf("")
     
     var isSubmitting by mutableStateOf(false)
         private set
@@ -42,7 +44,8 @@ class PartyEntryViewModel @Inject constructor(
                 name = name,
                 phoneNumber = phoneNumber.ifBlank { null },
                 address = address.ifBlank { null },
-                type = type
+                type = type,
+                openingBalance = openingBalance.toBigDecimalOrNull() ?: BigDecimal.ZERO
             )
             repository.addParty(party)
                 .onSuccess { onSuccess() }

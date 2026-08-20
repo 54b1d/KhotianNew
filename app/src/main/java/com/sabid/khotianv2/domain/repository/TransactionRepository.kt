@@ -6,6 +6,7 @@ import java.math.BigDecimal
 
 interface TransactionRepository {
     fun getTransactionsByParty(partyId: Long): Flow<List<Transaction>>
+    fun getTransactionsByAccount(accountId: Long): Flow<List<Transaction>>
     fun getPartyBalance(partyId: Long): Flow<BigDecimal>
     fun getUnifiedLedger(partyId: Long): Flow<List<Transaction>>
     suspend fun addTransaction(transaction: Transaction): Long

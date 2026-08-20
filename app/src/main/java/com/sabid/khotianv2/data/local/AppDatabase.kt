@@ -17,9 +17,11 @@ import com.sabid.khotianv2.data.local.entity.*
         ProductEntity::class,
         TransactionEntity::class,
         CrushingBatchEntity::class,
-        AuditLogEntity::class
+        AuditLogEntity::class,
+        UnitEntity::class,
+        FinancialAccountEntity::class
     ],
-    version = 2,
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(AppConverters::class)
@@ -30,4 +32,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
     abstract fun crushingBatchDao(): CrushingBatchDao
     abstract fun auditLogDao(): AuditLogDao
+    abstract fun unitDao(): UnitDao
+    abstract fun dataImportDao(): DataImportDao
+    abstract fun financialAccountDao(): FinancialAccountDao
 }

@@ -49,7 +49,11 @@ fun PartyLedgerScreen(
             )
         }
     ) { padding ->
-        Column(modifier = Modifier.padding(padding)) {
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .imePadding()
+        ) {
             LedgerHeader()
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -113,6 +117,7 @@ private fun LedgerRow(item: TransactionItem) {
             BusinessTransactionType.SALE -> "Sale"
             BusinessTransactionType.PAYMENT_MADE -> "PayM"
             BusinessTransactionType.PAYMENT_RECEIVED -> "PayR"
+            BusinessTransactionType.TRANSFER -> "Trns"
         }
         Text(
             text = typeLabel,
@@ -120,12 +125,20 @@ private fun LedgerRow(item: TransactionItem) {
             style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
             color = if (transaction.type == TransactionType.CREDIT) Color(0xFF2E7D32) else Color(0xFFC62828)
         )
-        Text(
-            text = transaction.amount.toPlainString(),
-            modifier = Modifier.weight(1.2f),
-            style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
-            textAlign = TextAlign.End
-        )
+        Column(modifier = Modifier.weight(1.2f), horizontalAlignment = Alignment.End) {
+            if (transaction.quantity != null) {
+                Text(
+                    text = "${transaction.quantity.toPlainString()} ${item.unitSymbol ?: ""}",
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 9.sp),
+                    textAlign = TextAlign.End
+                )
+            }
+            Text(
+                text = transaction.amount.toPlainString(),
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
+                textAlign = TextAlign.End
+            )
+        }
         Text(
             text = transaction.netCost.toPlainString(),
             modifier = Modifier.weight(1.2f),

@@ -32,9 +32,13 @@ fun TransactionEntryScreen(
 ) {
     val parties by viewModel.parties.collectAsState()
     val products by viewModel.products.collectAsState()
+    val units by viewModel.units.collectAsState()
     val permissions by viewModel.userPermissions.collectAsState()
+    val financialAccounts by viewModel.financialAccounts.collectAsState()
     var showPartyMenu by remember { mutableStateOf(false) }
     var showProductMenu by remember { mutableStateOf(false) }
+    var showUnitMenu by remember { mutableStateOf(false) }
+    var showAccountMenu by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -59,6 +63,7 @@ fun TransactionEntryScreen(
         Column(
             modifier = Modifier
                 .padding(padding)
+                .imePadding()
                 .padding(horizontal = 12.dp)
                 .verticalScroll(rememberScrollState())
                 .padding(vertical = 8.dp),
@@ -79,53 +84,54 @@ fun TransactionEntryScreen(
                                 text = type.name.replace("_", " "),
                                 style = MaterialTheme.typography.labelSmall
                             ) 
-                        },
-                        modifier = Modifier.weight(1f)
+                        }
                     )
                 }
             }
 
             // Party Selection
-            ExposedDropdownMenuBox(
-                expanded = showPartyMenu,
-                onExpandedChange = { showPartyMenu = it }
-            ) {
-                OutlinedTextField(
-                    value = parties.find { it.id == viewModel.partyId }?.name ?: "Select Party",
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Party") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showPartyMenu) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(),
-                    textStyle = MaterialTheme.typography.bodySmall
-                )
-                ExposedDropdownMenu(
+            if (viewModel.businessType != BusinessTransactionType.TRANSFER) {
+                ExposedDropdownMenuBox(
                     expanded = showPartyMenu,
-                    onDismissRequest = { showPartyMenu = false }
+                    onExpandedChange = { showPartyMenu = it }
                 ) {
-                    parties.forEach { party ->
+                    OutlinedTextField(
+                        value = parties.find { it.id == viewModel.partyId }?.name ?: "Select Party",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Party") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showPartyMenu) },
+                        modifier = Modifier.fillMaxWidth().menuAnchor(),
+                        textStyle = MaterialTheme.typography.bodySmall
+                    )
+                    ExposedDropdownMenu(
+                        expanded = showPartyMenu,
+                        onDismissRequest = { showPartyMenu = false }
+                    ) {
+                        parties.forEach { party ->
+                            DropdownMenuItem(
+                                text = { Text(party.name, style = MaterialTheme.typography.bodySmall) },
+                                onClick = {
+                                    viewModel.partyId = party.id
+                                    showPartyMenu = false
+                                }
+                            )
+                        }
+                        HorizontalDivider()
                         DropdownMenuItem(
-                            text = { Text(party.name, style = MaterialTheme.typography.bodySmall) },
+                            text = { 
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Rounded.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Add New Party", style = MaterialTheme.typography.bodySmall)
+                                }
+                            },
                             onClick = {
-                                viewModel.partyId = party.id
                                 showPartyMenu = false
+                                onAddPartyClick()
                             }
                         )
                     }
-                    HorizontalDivider()
-                    DropdownMenuItem(
-                        text = { 
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Rounded.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text("Add New Party", style = MaterialTheme.typography.bodySmall)
-                            }
-                        },
-                        onClick = {
-                            showPartyMenu = false
-                            onAddPartyClick()
-                        }
-                    )
                 }
             }
 
@@ -154,6 +160,8 @@ fun TransactionEntryScreen(
                                 text = { Text(product.name, style = MaterialTheme.typography.bodySmall) },
                                 onClick = {
                                     viewModel.productId = product.id
+                                    // Set default unit if available
+                                    product.defaultUnitId?.let { viewModel.unitId = it }
                                     showProductMenu = false
                                 }
                             )
@@ -184,6 +192,39 @@ fun TransactionEntryScreen(
                         modifier = Modifier.weight(1f),
                         textStyle = MaterialTheme.typography.bodySmall
                     )
+                    
+                    ExposedDropdownMenuBox(
+                        expanded = showUnitMenu,
+                        onExpandedChange = { showUnitMenu = it },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        OutlinedTextField(
+                            value = units.find { it.id == viewModel.unitId }?.symbol ?: "Unit",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Unit") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showUnitMenu) },
+                            modifier = Modifier.fillMaxWidth().menuAnchor(),
+                            textStyle = MaterialTheme.typography.bodySmall
+                        )
+                        ExposedDropdownMenu(
+                            expanded = showUnitMenu,
+                            onDismissRequest = { showUnitMenu = false }
+                        ) {
+                            units.forEach { unit ->
+                                DropdownMenuItem(
+                                    text = { Text("${unit.name} (${unit.symbol})", style = MaterialTheme.typography.bodySmall) },
+                                    onClick = {
+                                        viewModel.unitId = unit.id
+                                        showUnitMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = viewModel.rate,
                         onValueChange = { viewModel.rate = it },
@@ -191,6 +232,16 @@ fun TransactionEntryScreen(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f),
                         textStyle = MaterialTheme.typography.bodySmall
+                    )
+                    
+                    OutlinedTextField(
+                        value = viewModel.baseQuantity?.toPlainString() ?: "",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Base Qty") },
+                        modifier = Modifier.weight(1f),
+                        textStyle = MaterialTheme.typography.bodySmall,
+                        supportingText = { Text("Calculated base units") }
                     )
                 }
             } else {
@@ -203,6 +254,92 @@ fun TransactionEntryScreen(
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = MaterialTheme.typography.bodySmall
                 )
+            }
+
+            // Financial Account Selection (Payment Method / Transfer)
+            if (viewModel.businessType == BusinessTransactionType.PAYMENT_MADE ||
+                viewModel.businessType == BusinessTransactionType.PAYMENT_RECEIVED ||
+                viewModel.businessType == BusinessTransactionType.TRANSFER) {
+                
+                var showToAccountMenu by remember { mutableStateOf(false) }
+
+                ExposedDropdownMenuBox(
+                    expanded = showAccountMenu,
+                    onExpandedChange = { showAccountMenu = it }
+                ) {
+                    OutlinedTextField(
+                        value = financialAccounts.find { it.id == viewModel.financialAccountId }?.name ?: "Select ${if (viewModel.businessType == BusinessTransactionType.TRANSFER) "From" else "Payment"} Account",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text(if (viewModel.businessType == BusinessTransactionType.TRANSFER) "From Account" else "Payment Method (Account)") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showAccountMenu) },
+                        modifier = Modifier.fillMaxWidth().menuAnchor(),
+                        textStyle = MaterialTheme.typography.bodySmall
+                    )
+                    ExposedDropdownMenu(
+                        expanded = showAccountMenu,
+                        onDismissRequest = { showAccountMenu = false }
+                    ) {
+                        financialAccounts.forEach { account ->
+                            DropdownMenuItem(
+                                text = { 
+                                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                        Text(account.name, style = MaterialTheme.typography.bodySmall)
+                                        Text(
+                                            account.type.name,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    viewModel.financialAccountId = account.id
+                                    showAccountMenu = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                if (viewModel.businessType == BusinessTransactionType.TRANSFER) {
+                    ExposedDropdownMenuBox(
+                        expanded = showToAccountMenu,
+                        onExpandedChange = { showToAccountMenu = it }
+                    ) {
+                        OutlinedTextField(
+                            value = financialAccounts.find { it.id == viewModel.toFinancialAccountId }?.name ?: "Select To Account",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("To Account") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showToAccountMenu) },
+                            modifier = Modifier.fillMaxWidth().menuAnchor(),
+                            textStyle = MaterialTheme.typography.bodySmall
+                        )
+                        ExposedDropdownMenu(
+                            expanded = showToAccountMenu,
+                            onDismissRequest = { showToAccountMenu = false }
+                        ) {
+                            financialAccounts.forEach { account ->
+                                DropdownMenuItem(
+                                    text = { 
+                                        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                            Text(account.name, style = MaterialTheme.typography.bodySmall)
+                                            Text(
+                                                account.type.name,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        viewModel.toFinancialAccountId = account.id
+                                        showToAccountMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
             // Freight Section
@@ -236,21 +373,41 @@ fun TransactionEntryScreen(
                 }
             }
 
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+            if (viewModel.businessType != BusinessTransactionType.TRANSFER) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Net Amount", style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        viewModel.netCost.toPlainString(),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        modifier = Modifier.padding(8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Net Amount", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            viewModel.netCost.toPlainString(),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            } else {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Transfer Amount", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            viewModel.amount.toPlainString(),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
 

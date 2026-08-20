@@ -27,5 +27,17 @@ sealed interface NavRoutes : NavKey {
     data object ProductEntry : NavRoutes
 
     @Serializable
+    data object UnitEntry : NavRoutes
+
+    @Serializable
     data object CrushingEntry : NavRoutes
+
+    @Serializable
+    data object Backup : NavRoutes
+
+    @Serializable
+    data object FinancialAccountEntry : NavRoutes
+
+    @Serializable
+    data class FinancialAccountLedger(val accountId: Long) : NavRoutes
 }

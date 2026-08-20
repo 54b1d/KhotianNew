@@ -2,6 +2,7 @@ package com.sabid.khotianv2.data.local.converter
 
 import androidx.room.TypeConverter
 import com.sabid.khotianv2.data.local.entity.AuditAction
+import com.sabid.khotianv2.data.local.entity.FinancialAccountType
 import com.sabid.khotianv2.data.local.entity.TransactionType
 import com.sabid.khotianv2.domain.model.PermissionType
 import java.math.BigDecimal
@@ -42,4 +43,10 @@ class AppConverters {
 
     @TypeConverter
     fun toFreightType(value: String): com.sabid.khotianv2.data.local.entity.FreightType = com.sabid.khotianv2.data.local.entity.FreightType.valueOf(value)
+
+    @TypeConverter
+    fun fromFinancialAccountType(value: FinancialAccountType): String = value.name
+
+    @TypeConverter
+    fun toFinancialAccountType(value: String): FinancialAccountType = FinancialAccountType.valueOf(value)
 }

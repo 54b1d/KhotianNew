@@ -9,6 +9,7 @@ import com.sabid.khotianv2.domain.model.Transaction
 import com.sabid.khotianv2.domain.repository.BusinessRepository
 import com.squareup.moshi.Moshi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import java.math.BigDecimal
 import javax.inject.Inject
@@ -29,14 +30,22 @@ class BusinessRepositoryImpl @Inject constructor(
         list.map { it.toDomain() }
     }
 
+    override fun getParty(id: Long): Flow<Party?> = partyDao.getPartyByIdFlow(id).map { 
+        it?.toDomain()
+    }
+
     override fun getTransactions(partyId: Long): Flow<List<Transaction>> = 
         transactionDao.getTransactionsByParty(partyId).map { list ->
             list.map { it.toDomain() }
         }
 
     override fun getPartyBalance(partyId: Long): Flow<BigDecimal> = 
-        transactionDao.getTransactionsByParty(partyId).map { list ->
-            list.fold(BigDecimal.ZERO) { acc, entity ->
+        combine(
+            partyDao.getPartyByIdFlow(partyId),
+            transactionDao.getTransactionsByParty(partyId)
+        ) { party, transactions ->
+            val openingBalance = party?.openingBalance ?: BigDecimal.ZERO
+            transactions.fold(openingBalance) { acc, entity ->
                 if (entity.type == TransactionType.DEBIT) acc.add(entity.netCost) else acc.subtract(entity.netCost)
             }
         }

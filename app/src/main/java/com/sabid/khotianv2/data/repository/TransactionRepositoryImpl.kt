@@ -1,6 +1,7 @@
 package com.sabid.khotianv2.data.repository
 
 import com.sabid.khotianv2.data.local.dao.AuditLogDao
+import com.sabid.khotianv2.data.local.dao.PartyDao
 import com.sabid.khotianv2.data.local.dao.TransactionDao
 import com.sabid.khotianv2.data.local.entity.AuditAction
 import com.sabid.khotianv2.data.local.entity.AuditLogEntity
@@ -10,12 +11,14 @@ import com.sabid.khotianv2.domain.model.Transaction
 import com.sabid.khotianv2.domain.repository.TransactionRepository
 import com.squareup.moshi.Moshi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import java.math.BigDecimal
 import javax.inject.Inject
 
 class TransactionRepositoryImpl @Inject constructor(
     private val transactionDao: TransactionDao,
+    private val partyDao: PartyDao,
     private val auditLogDao: AuditLogDao,
     private val sessionManager: SessionManager,
     private val moshi: Moshi
@@ -27,9 +30,18 @@ class TransactionRepositoryImpl @Inject constructor(
             list.map { it.toDomain() }
         }
 
+    override fun getTransactionsByAccount(accountId: Long): Flow<List<Transaction>> =
+        transactionDao.getTransactionsByAccount(accountId).map { list ->
+            list.map { it.toDomain() }
+        }
+
     override fun getPartyBalance(partyId: Long): Flow<BigDecimal> =
-        transactionDao.getTransactionsByParty(partyId).map { list ->
-            list.fold(BigDecimal.ZERO) { acc, entity ->
+        combine(
+            partyDao.getPartyByIdFlow(partyId),
+            transactionDao.getTransactionsByParty(partyId)
+        ) { party, list ->
+            val openingBalance = party?.openingBalance ?: BigDecimal.ZERO
+            list.fold(openingBalance) { acc, entity ->
                 if (entity.type == TransactionType.DEBIT) acc.add(entity.netCost) else acc.subtract(entity.netCost)
             }
         }

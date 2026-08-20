@@ -8,7 +8,9 @@ import androidx.lifecycle.viewModelScope
 import com.sabid.khotianv2.domain.manager.PermissionManager
 import com.sabid.khotianv2.domain.model.*
 import com.sabid.khotianv2.domain.repository.BusinessRepository
+import com.sabid.khotianv2.domain.repository.FinancialAccountRepository
 import com.sabid.khotianv2.domain.repository.ProductRepository
+import com.sabid.khotianv2.domain.repository.UnitRepository
 import com.sabid.khotianv2.domain.usecase.AddTransactionUseCase
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
@@ -25,6 +27,8 @@ class TransactionEntryViewModel @AssistedInject constructor(
     @Assisted private val initialPartyId: Long?,
     private val businessRepository: BusinessRepository,
     private val productRepository: ProductRepository,
+    private val unitRepository: UnitRepository,
+    private val financialAccountRepository: FinancialAccountRepository,
     private val addTransactionUseCase: AddTransactionUseCase,
     private val permissionManager: PermissionManager
 ) : ViewModel() {
@@ -35,10 +39,19 @@ class TransactionEntryViewModel @AssistedInject constructor(
     val products: StateFlow<List<Product>> = productRepository.getAllProducts()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val units: StateFlow<List<AppUnit>> = unitRepository.getAllUnits()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val financialAccounts: StateFlow<List<FinancialAccount>> = financialAccountRepository.getAllAccounts()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val userPermissions: StateFlow<UserPermissions> = permissionManager.userPermissions
 
     var partyId by mutableStateOf<Long?>(initialPartyId)
     var productId by mutableStateOf<Long?>(null)
+    var unitId by mutableStateOf<Long?>(null)
+    var financialAccountId by mutableStateOf<Long?>(null)
+    var toFinancialAccountId by mutableStateOf<Long?>(null)
     var quantity by mutableStateOf("0")
     var rate by mutableStateOf("0")
     var amountText by mutableStateOf("0")
@@ -70,18 +83,34 @@ class TransactionEntryViewModel @AssistedInject constructor(
     val netCost: BigDecimal
         get() = if (freightType == FreightType.BORN_BY_US) amount.add(freightAmount) else amount
 
+    val baseQuantity: BigDecimal?
+        get() = try {
+            val q = BigDecimal(quantity)
+            val u = units.value.find { it.id == unitId }
+            if (u != null) {
+                q.multiply(u.multiplier)
+            } else {
+                q
+            }
+        } catch (e: Exception) {
+            null
+        }
+
     var isSubmitting by mutableStateOf(false)
         private set
 
     fun submitTransaction(onSuccess: () -> Unit, onError: (String) -> Unit) {
-        val currentPartyId = partyId ?: return
         viewModelScope.launch {
             isSubmitting = true
             val result = addTransactionUseCase(
-                partyId = currentPartyId,
+                partyId = partyId,
                 productId = productId,
-                quantity = if (businessType == BusinessTransactionType.PURCHASE || businessType == BusinessTransactionType.SALE) BigDecimal(quantity) else null,
-                rate = if (businessType == BusinessTransactionType.PURCHASE || businessType == BusinessTransactionType.SALE) BigDecimal(rate) else null,
+                unitId = unitId,
+                financialAccountId = financialAccountId,
+                toFinancialAccountId = toFinancialAccountId,
+                quantity = if (businessType == BusinessTransactionType.PURCHASE || businessType == BusinessTransactionType.SALE) try { BigDecimal(quantity) } catch(e: Exception) { null } else null,
+                baseQuantity = if (businessType == BusinessTransactionType.PURCHASE || businessType == BusinessTransactionType.SALE) baseQuantity else null,
+                rate = if (businessType == BusinessTransactionType.PURCHASE || businessType == BusinessTransactionType.SALE) try { BigDecimal(rate) } catch(e: Exception) { null } else null,
                 amount = amount,
                 freightAmount = freightAmount,
                 freightType = freightType,

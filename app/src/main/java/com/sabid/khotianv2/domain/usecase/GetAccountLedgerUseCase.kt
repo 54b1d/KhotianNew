@@ -1,7 +1,7 @@
 package com.sabid.khotianv2.domain.usecase
 
 import com.sabid.khotianv2.domain.model.Transaction
-import com.sabid.khotianv2.domain.repository.BusinessRepository
+import com.sabid.khotianv2.domain.repository.FinancialAccountRepository
 import com.sabid.khotianv2.domain.repository.TransactionRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -9,14 +9,14 @@ import kotlinx.coroutines.flow.map
 import java.math.BigDecimal
 import javax.inject.Inject
 
-class GetUnifiedLedgerUseCase @Inject constructor(
+class GetAccountLedgerUseCase @Inject constructor(
     private val transactionRepository: TransactionRepository,
-    private val businessRepository: BusinessRepository
+    private val financialAccountRepository: FinancialAccountRepository
 ) {
-    operator fun invoke(partyId: Long): Flow<Pair<BigDecimal, List<Transaction>>> {
+    operator fun invoke(accountId: Long): Flow<Pair<BigDecimal, List<Transaction>>> {
         return combine(
-            businessRepository.getParty(partyId).map { it?.openingBalance ?: BigDecimal.ZERO },
-            transactionRepository.getUnifiedLedger(partyId)
+            financialAccountRepository.getAccountById(accountId).map { it?.openingBalance ?: BigDecimal.ZERO },
+            transactionRepository.getTransactionsByAccount(accountId)
         ) { openingBalance, transactions ->
             openingBalance to transactions
         }
