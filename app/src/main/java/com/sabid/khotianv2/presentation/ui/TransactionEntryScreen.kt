@@ -20,6 +20,7 @@ import com.sabid.khotianv2.domain.model.BusinessTransactionType
 import com.sabid.khotianv2.domain.model.FreightType
 import com.sabid.khotianv2.domain.model.PermissionType
 import com.sabid.khotianv2.presentation.viewmodel.TransactionEntryViewModel
+import com.sabid.khotianv2.presentation.viewmodel.UnifiedAccount
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,23 +83,33 @@ fun TransactionEntryScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Transaction Type Selection
-            Text("Transaction Type", style = MaterialTheme.typography.labelMedium)
+            val productTypes = remember {
+                listOf(
+                    BusinessTransactionType.PURCHASE,
+                    BusinessTransactionType.SALE,
+                    BusinessTransactionType.STOCK_ADJUSTMENT
+                )
+            }
+            val otherTypes = remember {
+                listOf(
+                    BusinessTransactionType.TRANSFER,
+                    BusinessTransactionType.EXPENSE
+                )
+            }
+
+            Text("Product Transactions", style = MaterialTheme.typography.labelMedium)
             SingleChoiceSegmentedButtonRow(
                 modifier = Modifier.fillMaxWidth()
             ) {
-                BusinessTransactionType.entries.forEachIndexed { index, type ->
+                productTypes.forEachIndexed { index, type ->
                     val label = when (type) {
-                        BusinessTransactionType.PURCHASE -> "Purc"
+                        BusinessTransactionType.PURCHASE -> "Purchase"
                         BusinessTransactionType.SALE -> "Sale"
-                        BusinessTransactionType.PAYMENT_MADE -> "Paid"
-                        BusinessTransactionType.PAYMENT_RECEIVED -> "Recv"
-                        BusinessTransactionType.TRANSFER -> "Xfer"
-                        BusinessTransactionType.EXPENSE -> "Expn"
-                        BusinessTransactionType.STOCK_ADJUSTMENT -> "Adj"
-                        BusinessTransactionType.PARTY_SETTLEMENT -> "Setl"
+                        BusinessTransactionType.STOCK_ADJUSTMENT -> "Adjustment"
+                        else -> ""
                     }
                     SegmentedButton(
-                        shape = SegmentedButtonDefaults.itemShape(index = index, count = BusinessTransactionType.entries.size),
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = productTypes.size),
                         onClick = { viewModel.businessType = type },
                         selected = viewModel.businessType == type,
                         label = { 
@@ -112,9 +123,130 @@ fun TransactionEntryScreen(
                 }
             }
 
+            Text("Other Transactions", style = MaterialTheme.typography.labelMedium)
+            SingleChoiceSegmentedButtonRow(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                otherTypes.forEachIndexed { index, type ->
+                    val label = when (type) {
+                        BusinessTransactionType.TRANSFER -> "Transfer"
+                        BusinessTransactionType.EXPENSE -> "Expense"
+                        else -> ""
+                    }
+                    SegmentedButton(
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = otherTypes.size),
+                        onClick = { viewModel.businessType = type },
+                        selected = viewModel.isTransferMode && type == BusinessTransactionType.TRANSFER || (!viewModel.isTransferMode && viewModel.businessType == type),
+                        label = { 
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1
+                            ) 
+                        }
+                    )
+                }
+            }
+
+            // Unified Transfer Selection
+            if (viewModel.isTransferMode) {
+                val unifiedAccounts by viewModel.unifiedAccounts.collectAsState()
+                var showSrcMenu by remember { mutableStateOf(false) }
+                var showDestMenu by remember { mutableStateOf(false) }
+
+                ExposedDropdownMenuBox(
+                    expanded = showSrcMenu,
+                    onExpandedChange = { showSrcMenu = it }
+                ) {
+                    OutlinedTextField(
+                        value = viewModel.sourceAccount?.name ?: "Select Source (From)",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("From Account / Party") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showSrcMenu) },
+                        modifier = Modifier.fillMaxWidth().menuAnchor(),
+                        textStyle = MaterialTheme.typography.bodySmall
+                    )
+                    ExposedDropdownMenu(
+                        expanded = showSrcMenu,
+                        onDismissRequest = { showSrcMenu = false }
+                    ) {
+                        unifiedAccounts.forEach { account ->
+                            DropdownMenuItem(
+                                text = { 
+                                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                        Text(account.name, style = MaterialTheme.typography.bodySmall)
+                                        Text(
+                                            if (account is UnifiedAccount.Financial) "Account" else "Party",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    viewModel.onSourceAccountSelected(account)
+                                    showSrcMenu = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                ExposedDropdownMenuBox(
+                    expanded = showDestMenu,
+                    onExpandedChange = { showDestMenu = it }
+                ) {
+                    OutlinedTextField(
+                        value = viewModel.destinationAccount?.name ?: "Select Destination (To)",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("To Account / Party") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showDestMenu) },
+                        modifier = Modifier.fillMaxWidth().menuAnchor(),
+                        textStyle = MaterialTheme.typography.bodySmall
+                    )
+                    ExposedDropdownMenu(
+                        expanded = showDestMenu,
+                        onDismissRequest = { showDestMenu = false }
+                    ) {
+                        unifiedAccounts.filter { 
+                            val sameId = it.id == viewModel.sourceAccount?.id
+                            val sameType = (it is UnifiedAccount.Financial && viewModel.sourceAccount is UnifiedAccount.Financial) ||
+                                           (it is UnifiedAccount.PartyAccount && viewModel.sourceAccount is UnifiedAccount.PartyAccount)
+                            !(sameId && sameType)
+                        }.forEach { account ->
+                            DropdownMenuItem(
+                                text = { 
+                                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                        Text(account.name, style = MaterialTheme.typography.bodySmall)
+                                        Text(
+                                            if (account is UnifiedAccount.Financial) "Account" else "Party",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    viewModel.onDestinationAccountSelected(account)
+                                    showDestMenu = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = viewModel.amountText,
+                    onValueChange = { viewModel.amountText = it },
+                    label = { Text("Amount") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = MaterialTheme.typography.bodySmall
+                )
+            }
+
             // Party Selection
-            if (viewModel.businessType != BusinessTransactionType.TRANSFER && 
-                viewModel.businessType != BusinessTransactionType.EXPENSE) {
+            if (!viewModel.isTransferMode && viewModel.businessType != BusinessTransactionType.EXPENSE) {
                 ExposedDropdownMenuBox(
                     expanded = showPartyMenu,
                     onExpandedChange = { showPartyMenu = it }
@@ -291,103 +423,84 @@ fun TransactionEntryScreen(
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = MaterialTheme.typography.bodySmall
                 )
-            } else if (viewModel.businessType == BusinessTransactionType.EXPENSE) {
-                // Expense Category Selection
-                ExposedDropdownMenuBox(
-                    expanded = showExpenseCategoryMenu,
-                    onExpandedChange = { showExpenseCategoryMenu = it }
-                ) {
-                    OutlinedTextField(
-                        value = expenseCategories.find { it.id == viewModel.expenseCategoryId }?.name ?: "Select Category",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Expense Category") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showExpenseCategoryMenu) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor(),
-                        textStyle = MaterialTheme.typography.bodySmall
-                    )
-                    ExposedDropdownMenu(
+            } else if (!viewModel.isTransferMode) {
+                if (viewModel.businessType == BusinessTransactionType.EXPENSE) {
+                    // Expense Category Selection
+                    ExposedDropdownMenuBox(
                         expanded = showExpenseCategoryMenu,
-                        onDismissRequest = { showExpenseCategoryMenu = false }
+                        onExpandedChange = { showExpenseCategoryMenu = it }
                     ) {
-                        expenseCategories.forEach { category ->
-                            DropdownMenuItem(
-                                text = { Text(category.name, style = MaterialTheme.typography.bodySmall) },
-                                onClick = {
-                                    viewModel.expenseCategoryId = category.id
-                                    showExpenseCategoryMenu = false
-                                }
-                            )
+                        OutlinedTextField(
+                            value = expenseCategories.find { it.id == viewModel.expenseCategoryId }?.name ?: "Select Category",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Expense Category") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showExpenseCategoryMenu) },
+                            modifier = Modifier.fillMaxWidth().menuAnchor(),
+                            textStyle = MaterialTheme.typography.bodySmall
+                        )
+                        ExposedDropdownMenu(
+                            expanded = showExpenseCategoryMenu,
+                            onDismissRequest = { showExpenseCategoryMenu = false }
+                        ) {
+                            expenseCategories.forEach { category ->
+                                DropdownMenuItem(
+                                    text = { Text(category.name, style = MaterialTheme.typography.bodySmall) },
+                                    onClick = {
+                                        viewModel.expenseCategoryId = category.id
+                                        showExpenseCategoryMenu = false
+                                    }
+                                )
+                            }
                         }
                     }
-                }
 
-                OutlinedTextField(
-                    value = viewModel.amountText,
-                    onValueChange = { viewModel.amountText = it },
-                    label = { Text("Amount") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                    textStyle = MaterialTheme.typography.bodySmall
-                )
-            } else if (viewModel.businessType == BusinessTransactionType.PARTY_SETTLEMENT) {
-                // For settlement, only show Amount (already covered by party selection above)
-                OutlinedTextField(
-                    value = viewModel.amountText,
-                    onValueChange = { viewModel.amountText = it },
-                    label = { Text("Settlement Amount") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                    textStyle = MaterialTheme.typography.bodySmall
-                )
-            } else {
-                // Just Amount for Payments
-                OutlinedTextField(
-                    value = viewModel.amountText,
-                    onValueChange = { viewModel.amountText = it },
-                    label = { Text("Amount") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                    textStyle = MaterialTheme.typography.bodySmall
-                )
+                    OutlinedTextField(
+                        value = viewModel.amountText,
+                        onValueChange = { viewModel.amountText = it },
+                        label = { Text("Amount") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = MaterialTheme.typography.bodySmall
+                    )
+                } else if (viewModel.businessType == BusinessTransactionType.PARTY_SETTLEMENT) {
+                    // For settlement, only show Amount (already covered by party selection above)
+                    OutlinedTextField(
+                        value = viewModel.amountText,
+                        onValueChange = { viewModel.amountText = it },
+                        label = { Text("Settlement Amount") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = MaterialTheme.typography.bodySmall
+                    )
+                } else {
+                    // Just Amount for Payments
+                    OutlinedTextField(
+                        value = viewModel.amountText,
+                        onValueChange = { viewModel.amountText = it },
+                        label = { Text("Amount") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
 
-            // Financial Account Selection (Payment Method / Transfer / Expense)
-            if (viewModel.businessType == BusinessTransactionType.PAYMENT_MADE ||
-                viewModel.businessType == BusinessTransactionType.PAYMENT_RECEIVED ||
-                viewModel.businessType == BusinessTransactionType.TRANSFER ||
-                viewModel.businessType == BusinessTransactionType.EXPENSE) {
-                
-                var showToAccountMenu by remember { mutableStateOf(false) }
-
+            // Financial Account Selection (For Expense Only now, others handled by Unified)
+            if (viewModel.businessType == BusinessTransactionType.EXPENSE) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    if (viewModel.businessType == BusinessTransactionType.TRANSFER) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            shape = MaterialTheme.shapes.small,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                "Contra Entry Details",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
-                    }
-
                     ExposedDropdownMenuBox(
                         expanded = showAccountMenu,
                         onExpandedChange = { showAccountMenu = it }
                     ) {
                         OutlinedTextField(
-                            value = financialAccounts.find { it.id == viewModel.financialAccountId }?.name ?: "Select ${if (viewModel.businessType == BusinessTransactionType.TRANSFER) "Source" else "Payment"} Account",
+                            value = financialAccounts.find { it.id == viewModel.financialAccountId }?.name ?: "Select Payment Account",
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text(if (viewModel.businessType == BusinessTransactionType.TRANSFER) "From (Source) Account" else "Payment Method (Account)") },
+                            label = { Text("Payment Method (Account)") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showAccountMenu) },
                             modifier = Modifier.fillMaxWidth().menuAnchor(),
                             textStyle = MaterialTheme.typography.bodySmall
@@ -413,46 +526,6 @@ fun TransactionEntryScreen(
                                         showAccountMenu = false
                                     }
                                 )
-                            }
-                        }
-                    }
-
-                    if (viewModel.businessType == BusinessTransactionType.TRANSFER) {
-                        ExposedDropdownMenuBox(
-                            expanded = showToAccountMenu,
-                            onExpandedChange = { showToAccountMenu = it }
-                        ) {
-                            OutlinedTextField(
-                                value = financialAccounts.find { it.id == viewModel.toFinancialAccountId }?.name ?: "Select Destination Account",
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("To (Destination) Account") },
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showToAccountMenu) },
-                                modifier = Modifier.fillMaxWidth().menuAnchor(),
-                                textStyle = MaterialTheme.typography.bodySmall
-                            )
-                            ExposedDropdownMenu(
-                                expanded = showToAccountMenu,
-                                onDismissRequest = { showToAccountMenu = false }
-                            ) {
-                                financialAccounts.forEach { account ->
-                                    DropdownMenuItem(
-                                        text = { 
-                                            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                                                Text(account.name, style = MaterialTheme.typography.bodySmall)
-                                                Text(
-                                                    account.type.name,
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.primary
-                                                )
-                                            }
-                                        },
-                                        onClick = {
-                                            viewModel.toFinancialAccountId = account.id
-                                            showToAccountMenu = false
-                                        }
-                                    )
-                                }
                             }
                         }
                     }

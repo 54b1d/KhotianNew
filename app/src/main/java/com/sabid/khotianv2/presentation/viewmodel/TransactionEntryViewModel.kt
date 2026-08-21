@@ -20,9 +20,27 @@ import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
+
+sealed class UnifiedAccount {
+    data class PartyAccount(val party: Party) : UnifiedAccount()
+    data class Financial(val account: FinancialAccount) : UnifiedAccount()
+
+    val id: Long
+        get() = when (this) {
+            is PartyAccount -> party.id
+            is Financial -> account.id
+        }
+
+    val name: String
+        get() = when (this) {
+            is PartyAccount -> party.name
+            is Financial -> account.name
+        }
+}
 
 @HiltViewModel(assistedFactory = TransactionEntryViewModel.Factory::class)
 class TransactionEntryViewModel @AssistedInject constructor(
@@ -53,6 +71,10 @@ class TransactionEntryViewModel @AssistedInject constructor(
     val expenseCategories: StateFlow<List<ExpenseCategory>> = expenseCategoryRepository.getAllCategories()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val unifiedAccounts: StateFlow<List<UnifiedAccount>> = combine(parties, financialAccounts) { pList, fList ->
+        pList.map { UnifiedAccount.PartyAccount(it) } + fList.map { UnifiedAccount.Financial(it) }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val userPermissions: StateFlow<UserPermissions> = permissionManager.userPermissions
 
     var partyId by mutableStateOf<Long?>(initialPartyId)
@@ -69,6 +91,66 @@ class TransactionEntryViewModel @AssistedInject constructor(
     var freightType by mutableStateOf(FreightType.BORN_BY_SELLER)
     var businessType by mutableStateOf(BusinessTransactionType.SALE)
     var note by mutableStateOf("")
+
+    var sourceAccount by mutableStateOf<UnifiedAccount?>(null)
+    var destinationAccount by mutableStateOf<UnifiedAccount?>(null)
+
+    val isTransferMode: Boolean
+        get() = businessType == BusinessTransactionType.TRANSFER ||
+                businessType == BusinessTransactionType.PARTY_SETTLEMENT ||
+                businessType == BusinessTransactionType.PAYMENT_MADE ||
+                businessType == BusinessTransactionType.PAYMENT_RECEIVED
+
+    fun onSourceAccountSelected(account: UnifiedAccount?) {
+        sourceAccount = account
+        updateInternalIdsFromUnified()
+    }
+
+    fun onDestinationAccountSelected(account: UnifiedAccount?) {
+        destinationAccount = account
+        updateInternalIdsFromUnified()
+    }
+
+    private fun updateInternalIdsFromUnified() {
+        // Reset relevant IDs
+        partyId = null
+        toPartyId = null
+        financialAccountId = null
+        toFinancialAccountId = null
+
+        val src = sourceAccount
+        val dest = destinationAccount
+
+        if (src == null || dest == null) return
+
+        when (src) {
+            is UnifiedAccount.PartyAccount -> partyId = src.id
+            is UnifiedAccount.Financial -> financialAccountId = src.id
+        }
+
+        when (dest) {
+            is UnifiedAccount.PartyAccount -> {
+                if (src is UnifiedAccount.PartyAccount) {
+                    toPartyId = dest.id
+                    businessType = BusinessTransactionType.PARTY_SETTLEMENT
+                } else {
+                    partyId = dest.id
+                    financialAccountId = (src as UnifiedAccount.Financial).id
+                    businessType = BusinessTransactionType.PAYMENT_MADE
+                }
+            }
+            is UnifiedAccount.Financial -> {
+                if (src is UnifiedAccount.Financial) {
+                    toFinancialAccountId = dest.id
+                    businessType = BusinessTransactionType.TRANSFER
+                } else {
+                    partyId = (src as UnifiedAccount.PartyAccount).id
+                    financialAccountId = dest.id
+                    businessType = BusinessTransactionType.PAYMENT_RECEIVED
+                }
+            }
+        }
+    }
 
     var isEditing by mutableStateOf(false)
         private set
@@ -95,6 +177,8 @@ class TransactionEntryViewModel @AssistedInject constructor(
         freightType = FreightType.BORN_BY_SELLER
         businessType = BusinessTransactionType.SALE
         note = ""
+        sourceAccount = null
+        destinationAccount = null
         
         if (id != null) {
             isEditing = true
@@ -115,6 +199,27 @@ class TransactionEntryViewModel @AssistedInject constructor(
                     freightType = tx.freightType
                     businessType = tx.businessType
                     note = tx.note ?: ""
+
+                    // Reconstruct source/destination for unified UI if applicable
+                    when (tx.businessType) {
+                        BusinessTransactionType.TRANSFER -> {
+                            sourceAccount = financialAccounts.value.find { it.id == tx.financialAccountId }?.let { UnifiedAccount.Financial(it) }
+                            destinationAccount = financialAccounts.value.find { it.id == tx.toFinancialAccountId }?.let { UnifiedAccount.Financial(it) }
+                        }
+                        BusinessTransactionType.PARTY_SETTLEMENT -> {
+                            sourceAccount = parties.value.find { it.id == tx.partyId }?.let { UnifiedAccount.PartyAccount(it) }
+                            destinationAccount = parties.value.find { it.id == tx.toPartyId }?.let { UnifiedAccount.PartyAccount(it) }
+                        }
+                        BusinessTransactionType.PAYMENT_MADE -> {
+                            sourceAccount = financialAccounts.value.find { it.id == tx.financialAccountId }?.let { UnifiedAccount.Financial(it) }
+                            destinationAccount = parties.value.find { it.id == tx.partyId }?.let { UnifiedAccount.PartyAccount(it) }
+                        }
+                        BusinessTransactionType.PAYMENT_RECEIVED -> {
+                            sourceAccount = parties.value.find { it.id == tx.partyId }?.let { UnifiedAccount.PartyAccount(it) }
+                            destinationAccount = financialAccounts.value.find { it.id == tx.financialAccountId }?.let { UnifiedAccount.Financial(it) }
+                        }
+                        else -> { /* Not a unified transfer type */ }
+                    }
                 }
             }
         } else {
