@@ -6,6 +6,7 @@ import com.sabid.khotianv2.domain.model.*
 fun TransactionEntity.toDomain() = Transaction(
     id = id,
     partyId = partyId,
+    toPartyId = toPartyId,
     productId = productId,
     unitId = unitId,
     quantity = quantity,
@@ -28,6 +29,7 @@ fun TransactionEntity.toDomain() = Transaction(
 fun Transaction.toEntity() = TransactionEntity(
     id = id,
     partyId = partyId,
+    toPartyId = toPartyId,
     productId = productId,
     unitId = unitId,
     quantity = quantity,
@@ -121,6 +123,7 @@ fun com.sabid.khotianv2.data.local.entity.TransactionType.toDomain() = when (thi
     com.sabid.khotianv2.data.local.entity.TransactionType.TRANSFER -> com.sabid.khotianv2.domain.model.TransactionType.TRANSFER
     com.sabid.khotianv2.data.local.entity.TransactionType.EXPENSE -> com.sabid.khotianv2.domain.model.TransactionType.EXPENSE
     com.sabid.khotianv2.data.local.entity.TransactionType.STOCK_ADJUSTMENT -> com.sabid.khotianv2.domain.model.TransactionType.STOCK_ADJUSTMENT
+    com.sabid.khotianv2.data.local.entity.TransactionType.PARTY_SETTLEMENT -> com.sabid.khotianv2.domain.model.TransactionType.PARTY_SETTLEMENT
 }
 
 fun com.sabid.khotianv2.domain.model.TransactionType.toEntity() = when (this) {
@@ -129,6 +132,7 @@ fun com.sabid.khotianv2.domain.model.TransactionType.toEntity() = when (this) {
     com.sabid.khotianv2.domain.model.TransactionType.TRANSFER -> com.sabid.khotianv2.data.local.entity.TransactionType.TRANSFER
     com.sabid.khotianv2.domain.model.TransactionType.EXPENSE -> com.sabid.khotianv2.data.local.entity.TransactionType.EXPENSE
     com.sabid.khotianv2.domain.model.TransactionType.STOCK_ADJUSTMENT -> com.sabid.khotianv2.data.local.entity.TransactionType.STOCK_ADJUSTMENT
+    com.sabid.khotianv2.domain.model.TransactionType.PARTY_SETTLEMENT -> com.sabid.khotianv2.data.local.entity.TransactionType.PARTY_SETTLEMENT
 }
 
 fun com.sabid.khotianv2.data.local.entity.BusinessTransactionType.toDomain() = when (this) {
@@ -139,6 +143,7 @@ fun com.sabid.khotianv2.data.local.entity.BusinessTransactionType.toDomain() = w
     com.sabid.khotianv2.data.local.entity.BusinessTransactionType.TRANSFER -> com.sabid.khotianv2.domain.model.BusinessTransactionType.TRANSFER
     com.sabid.khotianv2.data.local.entity.BusinessTransactionType.EXPENSE -> com.sabid.khotianv2.domain.model.BusinessTransactionType.EXPENSE
     com.sabid.khotianv2.data.local.entity.BusinessTransactionType.STOCK_ADJUSTMENT -> com.sabid.khotianv2.domain.model.BusinessTransactionType.STOCK_ADJUSTMENT
+    com.sabid.khotianv2.data.local.entity.BusinessTransactionType.PARTY_SETTLEMENT -> com.sabid.khotianv2.domain.model.BusinessTransactionType.PARTY_SETTLEMENT
 }
 
 fun com.sabid.khotianv2.domain.model.BusinessTransactionType.toEntity() = when (this) {
@@ -149,6 +154,7 @@ fun com.sabid.khotianv2.domain.model.BusinessTransactionType.toEntity() = when (
     com.sabid.khotianv2.domain.model.BusinessTransactionType.TRANSFER -> com.sabid.khotianv2.data.local.entity.BusinessTransactionType.TRANSFER
     com.sabid.khotianv2.domain.model.BusinessTransactionType.EXPENSE -> com.sabid.khotianv2.data.local.entity.BusinessTransactionType.EXPENSE
     com.sabid.khotianv2.domain.model.BusinessTransactionType.STOCK_ADJUSTMENT -> com.sabid.khotianv2.data.local.entity.BusinessTransactionType.STOCK_ADJUSTMENT
+    com.sabid.khotianv2.domain.model.BusinessTransactionType.PARTY_SETTLEMENT -> com.sabid.khotianv2.data.local.entity.BusinessTransactionType.PARTY_SETTLEMENT
 }
 
 fun FinancialAccountEntity.toDomain() = FinancialAccount(

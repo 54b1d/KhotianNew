@@ -119,7 +119,7 @@ interface TransactionDao {
     @Insert
     suspend fun insertTransaction(transaction: TransactionEntity): Long
 
-    @Query("SELECT * FROM transactions WHERE partyId = :partyId ORDER BY timestamp DESC")
+    @Query("SELECT * FROM transactions WHERE partyId = :partyId OR toPartyId = :partyId ORDER BY timestamp DESC")
     fun getTransactionsByParty(partyId: Long): Flow<List<TransactionEntity>>
 
     @Query("SELECT * FROM transactions WHERE financialAccountId = :accountId OR toFinancialAccountId = :accountId ORDER BY timestamp DESC")

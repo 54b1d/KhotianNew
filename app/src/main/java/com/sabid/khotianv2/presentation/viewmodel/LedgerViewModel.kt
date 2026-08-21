@@ -24,7 +24,9 @@ import java.math.BigDecimal
 data class TransactionItem(
     val transaction: Transaction,
     val runningBalance: BigDecimal,
-    val unitSymbol: String? = null
+    val unitSymbol: String? = null,
+    val otherPartyName: String? = null,
+    val isCredit: Boolean = false
 )
 
 @HiltViewModel(assistedFactory = LedgerViewModel.Factory::class)
@@ -38,14 +40,38 @@ class LedgerViewModel @AssistedInject constructor(
 
     val transactions: StateFlow<List<TransactionItem>> = combine(
         getUnifiedLedgerUseCase(partyId),
-        unitRepository.getAllUnits()
-    ) { (openingBalance, list), units ->
+        unitRepository.getAllUnits(),
+        businessRepository.getParties()
+    ) { (openingBalance, list), units, parties ->
         var currentBalance = openingBalance
         list.sortedBy { it.timestamp }.map { transaction ->
-            val change = if (transaction.type == TransactionType.DEBIT) transaction.netCost else transaction.netCost.negate()
+            val change = when (transaction.type) {
+                TransactionType.DEBIT -> transaction.netCost
+                TransactionType.CREDIT -> transaction.netCost.negate()
+                TransactionType.PARTY_SETTLEMENT -> {
+                    if (transaction.partyId == partyId) {
+                        transaction.netCost.negate()
+                    } else if (transaction.toPartyId == partyId) {
+                        transaction.netCost
+                    } else BigDecimal.ZERO
+                }
+                else -> BigDecimal.ZERO
+            }
             currentBalance = currentBalance.add(change)
             val unit = units.find { it.id == transaction.unitId }
-            TransactionItem(transaction, currentBalance, unit?.symbol)
+            val otherPartyId = if (transaction.partyId == partyId) transaction.toPartyId else transaction.partyId
+            val otherPartyName = if (transaction.type == TransactionType.PARTY_SETTLEMENT) {
+                parties.find { it.id == otherPartyId }?.name
+            } else null
+            
+            val isCredit = when (transaction.type) {
+                TransactionType.CREDIT -> true
+                TransactionType.DEBIT -> false
+                TransactionType.PARTY_SETTLEMENT -> transaction.partyId == partyId
+                else -> false
+            }
+            
+            TransactionItem(transaction, currentBalance, unit?.symbol, otherPartyName, isCredit)
         }.reversed()
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 

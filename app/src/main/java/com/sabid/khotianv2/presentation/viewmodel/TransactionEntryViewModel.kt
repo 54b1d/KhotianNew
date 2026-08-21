@@ -56,6 +56,7 @@ class TransactionEntryViewModel @AssistedInject constructor(
     val userPermissions: StateFlow<UserPermissions> = permissionManager.userPermissions
 
     var partyId by mutableStateOf<Long?>(initialPartyId)
+    var toPartyId by mutableStateOf<Long?>(null)
     var productId by mutableStateOf<Long?>(null)
     var unitId by mutableStateOf<Long?>(null)
     var financialAccountId by mutableStateOf<Long?>(null)
@@ -81,6 +82,7 @@ class TransactionEntryViewModel @AssistedInject constructor(
     fun loadTransaction(id: Long?) {
         // Reset state to defaults or initial values
         partyId = initialPartyId
+        toPartyId = null
         productId = null
         unitId = null
         financialAccountId = null
@@ -100,6 +102,7 @@ class TransactionEntryViewModel @AssistedInject constructor(
                 val tx = transactionRepository.getTransactionById(id)
                 if (tx != null) {
                     partyId = tx.partyId
+                    toPartyId = tx.toPartyId
                     productId = tx.productId
                     unitId = tx.unitId
                     financialAccountId = tx.financialAccountId
@@ -140,7 +143,11 @@ class TransactionEntryViewModel @AssistedInject constructor(
         }
 
     val netCost: BigDecimal
-        get() = if (freightType == FreightType.BORN_BY_US) amount.add(freightAmount) else amount
+        get() = if (freightType == FreightType.BORN_BY_US && (businessType == BusinessTransactionType.PURCHASE || businessType == BusinessTransactionType.SALE)) {
+            amount.add(freightAmount)
+        } else {
+            amount
+        }
 
     val baseQuantity: BigDecimal?
         get() = try {
@@ -161,17 +168,22 @@ class TransactionEntryViewModel @AssistedInject constructor(
     fun submitTransaction(onSuccess: () -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {
             isSubmitting = true
+            val isProductRequired = businessType == BusinessTransactionType.PURCHASE || 
+                                    businessType == BusinessTransactionType.SALE || 
+                                    businessType == BusinessTransactionType.STOCK_ADJUSTMENT
+
             val result = addTransactionUseCase(
                 transactionId = transactionId,
                 partyId = partyId,
+                toPartyId = toPartyId,
                 productId = productId,
                 unitId = unitId,
                 financialAccountId = financialAccountId,
                 toFinancialAccountId = toFinancialAccountId,
                 expenseCategoryId = expenseCategoryId,
-                quantity = if (businessType == BusinessTransactionType.PURCHASE || businessType == BusinessTransactionType.SALE || businessType == BusinessTransactionType.STOCK_ADJUSTMENT) try { BigDecimal(quantity) } catch(e: Exception) { null } else null,
-                baseQuantity = if (businessType == BusinessTransactionType.PURCHASE || businessType == BusinessTransactionType.SALE || businessType == BusinessTransactionType.STOCK_ADJUSTMENT) baseQuantity else null,
-                rate = if (businessType == BusinessTransactionType.PURCHASE || businessType == BusinessTransactionType.SALE) try { BigDecimal(rate) } catch(e: Exception) { null } else null,
+                quantity = if (isProductRequired) try { BigDecimal(quantity) } catch(e: Exception) { null } else null,
+                baseQuantity = if (isProductRequired) baseQuantity else null,
+                rate = if (isProductRequired) try { BigDecimal(rate) } catch(e: Exception) { null } else null,
                 amount = amount,
                 freightAmount = freightAmount,
                 freightType = freightType,

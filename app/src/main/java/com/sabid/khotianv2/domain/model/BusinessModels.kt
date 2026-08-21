@@ -53,6 +53,7 @@ enum class FinancialAccountType {
 data class Transaction(
     val id: Long = 0,
     val partyId: Long? = null,
+    val toPartyId: Long? = null,
     val productId: Long? = null,
     val unitId: Long? = null,
     val financialAccountId: Long? = null,
@@ -73,11 +74,11 @@ data class Transaction(
 )
 
 enum class TransactionType {
-    DEBIT, CREDIT, TRANSFER, EXPENSE, STOCK_ADJUSTMENT
+    DEBIT, CREDIT, TRANSFER, EXPENSE, STOCK_ADJUSTMENT, PARTY_SETTLEMENT
 }
 
 enum class BusinessTransactionType {
-    PURCHASE, SALE, PAYMENT_MADE, PAYMENT_RECEIVED, TRANSFER, EXPENSE, STOCK_ADJUSTMENT
+    PURCHASE, SALE, PAYMENT_MADE, PAYMENT_RECEIVED, TRANSFER, EXPENSE, STOCK_ADJUSTMENT, PARTY_SETTLEMENT
 }
 
 enum class FreightType {

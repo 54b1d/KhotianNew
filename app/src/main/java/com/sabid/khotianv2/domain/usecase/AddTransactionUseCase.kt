@@ -17,6 +17,7 @@ class AddTransactionUseCase @Inject constructor(
     suspend operator fun invoke(
         transactionId: Long? = null,
         partyId: Long? = null,
+        toPartyId: Long? = null,
         productId: Long? = null,
         unitId: Long? = null,
         financialAccountId: Long? = null,
@@ -59,6 +60,13 @@ class AddTransactionUseCase @Inject constructor(
             if (productId == null) {
                 return Result.failure(Exception("Product must be selected for stock adjustment"))
             }
+        } else if (businessType == BusinessTransactionType.PARTY_SETTLEMENT) {
+            if (partyId == null || toPartyId == null) {
+                return Result.failure(Exception("Both 'From Party' and 'To Party' must be selected for settlement"))
+            }
+            if (partyId == toPartyId) {
+                return Result.failure(Exception("Source and destination parties must be different"))
+            }
         } else {
             if (partyId == null) {
                 return Result.failure(Exception("Party must be selected"))
@@ -70,20 +78,23 @@ class AddTransactionUseCase @Inject constructor(
 
         val userId = sessionManager.currentUserId.value ?: return Result.failure(Exception("User not authenticated"))
 
-        // Mapping Business Type to DEBIT/CREDIT/TRANSFER/EXPENSE/STOCK_ADJUSTMENT
+        // Mapping Business Type to DEBIT/CREDIT/TRANSFER/EXPENSE/STOCK_ADJUSTMENT/PARTY_SETTLEMENT
         val type = when (businessType) {
             BusinessTransactionType.SALE, BusinessTransactionType.PAYMENT_MADE -> TransactionType.DEBIT
             BusinessTransactionType.PURCHASE, BusinessTransactionType.PAYMENT_RECEIVED -> TransactionType.CREDIT
             BusinessTransactionType.TRANSFER -> TransactionType.TRANSFER
             BusinessTransactionType.EXPENSE -> TransactionType.EXPENSE
             BusinessTransactionType.STOCK_ADJUSTMENT -> TransactionType.STOCK_ADJUSTMENT
+            BusinessTransactionType.PARTY_SETTLEMENT -> TransactionType.PARTY_SETTLEMENT
         }
 
         // Net Cost Logic
-        val netCost = if (freightType == FreightType.BORN_BY_US) {
-            amount.add(freightAmount)
+        val finalAmount = amount
+
+        val netCost = if (freightType == FreightType.BORN_BY_US && (businessType == BusinessTransactionType.PURCHASE || businessType == BusinessTransactionType.SALE)) {
+            finalAmount.add(freightAmount)
         } else {
-            amount
+            finalAmount
         }
 
         // 2. Reverse effects of OLD transaction
@@ -106,13 +117,12 @@ class AddTransactionUseCase @Inject constructor(
                     financialAccountRepository.updateBalance(oldTransaction.financialAccountId, oldBalanceChange.negate())
                 }
             }
-            // Product Stock is calculated on-the-fly, so no manual reversal needed here if using the transactions table.
-            // If it was stored, we would reverse it here.
         }
 
         val transaction = Transaction(
             id = transactionId ?: 0,
             partyId = partyId,
+            toPartyId = toPartyId,
             productId = productId,
             unitId = unitId,
             financialAccountId = financialAccountId,
@@ -121,7 +131,7 @@ class AddTransactionUseCase @Inject constructor(
             quantity = quantity,
             baseQuantity = baseQuantity,
             rate = rate,
-            amount = amount,
+            amount = finalAmount,
             freightAmount = freightAmount,
             freightType = freightType,
             netCost = netCost,

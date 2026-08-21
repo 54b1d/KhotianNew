@@ -123,13 +123,24 @@ private fun LedgerRow(item: TransactionItem, onClick: () -> Unit) {
             BusinessTransactionType.TRANSFER -> "Trns"
             BusinessTransactionType.EXPENSE -> "Expn"
             BusinessTransactionType.STOCK_ADJUSTMENT -> "Adj"
+            BusinessTransactionType.PARTY_SETTLEMENT -> "Setl"
         }
-        Text(
-            text = typeLabel,
-            modifier = Modifier.weight(0.8f),
-            style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
-            color = if (transaction.type == TransactionType.CREDIT) Color(0xFF2E7D32) else Color(0xFFC62828)
-        )
+        val typeColor = if (item.isCredit) Color(0xFF2E7D32) else Color(0xFFC62828)
+        Column(modifier = Modifier.weight(0.8f)) {
+            Text(
+                text = typeLabel,
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
+                color = typeColor
+            )
+            if (item.otherPartyName != null) {
+                Text(
+                    text = item.otherPartyName,
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 7.sp),
+                    color = MaterialTheme.colorScheme.secondary,
+                    maxLines = 1
+                )
+            }
+        }
         Column(modifier = Modifier.weight(1.2f), horizontalAlignment = Alignment.End) {
             if (transaction.quantity != null) {
                 Text(

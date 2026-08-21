@@ -95,6 +95,7 @@ fun TransactionEntryScreen(
                         BusinessTransactionType.TRANSFER -> "Xfer"
                         BusinessTransactionType.EXPENSE -> "Expn"
                         BusinessTransactionType.STOCK_ADJUSTMENT -> "Adj"
+                        BusinessTransactionType.PARTY_SETTLEMENT -> "Setl"
                     }
                     SegmentedButton(
                         shape = SegmentedButtonDefaults.itemShape(index = index, count = BusinessTransactionType.entries.size),
@@ -122,7 +123,7 @@ fun TransactionEntryScreen(
                         value = parties.find { it.id == viewModel.partyId }?.name ?: "Select Party",
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Party") },
+                        label = { Text(if (viewModel.businessType == BusinessTransactionType.PARTY_SETTLEMENT) "From Party (Payer)" else "Party") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showPartyMenu) },
                         modifier = Modifier.fillMaxWidth().menuAnchor(),
                         textStyle = MaterialTheme.typography.bodySmall
@@ -156,12 +157,46 @@ fun TransactionEntryScreen(
                         )
                     }
                 }
+
+                if (viewModel.businessType == BusinessTransactionType.PARTY_SETTLEMENT) {
+                    var showToPartyMenu by remember { mutableStateOf(false) }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    ExposedDropdownMenuBox(
+                        expanded = showToPartyMenu,
+                        onExpandedChange = { showToPartyMenu = it }
+                    ) {
+                        OutlinedTextField(
+                            value = parties.find { it.id == viewModel.toPartyId }?.name ?: "Select Party",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("To Party (Receiver)") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showToPartyMenu) },
+                            modifier = Modifier.fillMaxWidth().menuAnchor(),
+                            textStyle = MaterialTheme.typography.bodySmall
+                        )
+                        ExposedDropdownMenu(
+                            expanded = showToPartyMenu,
+                            onDismissRequest = { showToPartyMenu = false }
+                        ) {
+                            parties.filter { it.id != viewModel.partyId }.forEach { party ->
+                                DropdownMenuItem(
+                                    text = { Text(party.name, style = MaterialTheme.typography.bodySmall) },
+                                    onClick = {
+                                        viewModel.toPartyId = party.id
+                                        showToPartyMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
             // Product Selection (for Purchase/Sale/Stock Adjustment)
             if (viewModel.businessType == BusinessTransactionType.PURCHASE || 
                 viewModel.businessType == BusinessTransactionType.SALE ||
                 viewModel.businessType == BusinessTransactionType.STOCK_ADJUSTMENT) {
+                
                 ExposedDropdownMenuBox(
                     expanded = showProductMenu,
                     onExpandedChange = { showProductMenu = it }
@@ -211,7 +246,7 @@ fun TransactionEntryScreen(
                     OutlinedTextField(
                         value = viewModel.quantity,
                         onValueChange = { viewModel.quantity = it },
-                        label = { Text("Quantity") },
+                        label = { Text("Qty") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f),
                         textStyle = MaterialTheme.typography.bodySmall
@@ -248,26 +283,14 @@ fun TransactionEntryScreen(
                     }
                 }
                 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = viewModel.rate,
-                        onValueChange = { viewModel.rate = it },
-                        label = { Text("Rate") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f),
-                        textStyle = MaterialTheme.typography.bodySmall
-                    )
-                    
-                    OutlinedTextField(
-                        value = viewModel.baseQuantity?.toPlainString() ?: "",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Base Qty") },
-                        modifier = Modifier.weight(1f),
-                        textStyle = MaterialTheme.typography.bodySmall,
-                        supportingText = { Text("Calculated base units") }
-                    )
-                }
+                OutlinedTextField(
+                    value = viewModel.rate,
+                    onValueChange = { viewModel.rate = it },
+                    label = { Text("Rate") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = MaterialTheme.typography.bodySmall
+                )
             } else if (viewModel.businessType == BusinessTransactionType.EXPENSE) {
                 // Expense Category Selection
                 ExposedDropdownMenuBox(
@@ -303,6 +326,16 @@ fun TransactionEntryScreen(
                     value = viewModel.amountText,
                     onValueChange = { viewModel.amountText = it },
                     label = { Text("Amount") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = MaterialTheme.typography.bodySmall
+                )
+            } else if (viewModel.businessType == BusinessTransactionType.PARTY_SETTLEMENT) {
+                // For settlement, only show Amount (already covered by party selection above)
+                OutlinedTextField(
+                    value = viewModel.amountText,
+                    onValueChange = { viewModel.amountText = it },
+                    label = { Text("Settlement Amount") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = MaterialTheme.typography.bodySmall

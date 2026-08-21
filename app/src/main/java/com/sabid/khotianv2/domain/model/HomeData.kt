@@ -15,6 +15,7 @@ data class HomeData(
 data class TransactionItem(
     val transaction: Transaction,
     val partyName: String? = null,
+    val toPartyName: String? = null,
     val accountName: String? = null,
     val toAccountName: String? = null,
     val categoryName: String? = null,

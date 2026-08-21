@@ -52,6 +52,7 @@ class GetHomeDataUseCase @Inject constructor(
                 TransactionItem(
                     transaction = transaction,
                     partyName = transaction.partyId?.let { metadata.partyMap[it]?.name },
+                    toPartyName = transaction.toPartyId?.let { metadata.partyMap[it]?.name },
                     accountName = transaction.financialAccountId?.let { metadata.accountMap[it]?.name },
                     toAccountName = transaction.toFinancialAccountId?.let { metadata.accountMap[it]?.name },
                     categoryName = transaction.expenseCategoryId?.let { metadata.categoryMap[it]?.name },

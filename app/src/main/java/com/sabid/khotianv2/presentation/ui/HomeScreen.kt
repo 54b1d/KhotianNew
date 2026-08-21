@@ -284,6 +284,15 @@ private fun TransactionRow(item: TransactionItem, onClick: () -> Unit) {
                             overflow = TextOverflow.Ellipsis
                         )
                     }
+                    if (transaction.businessType == BusinessTransactionType.PARTY_SETTLEMENT && item.toPartyName != null) {
+                        Text(
+                            text = " → ${item.toPartyName}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
@@ -311,6 +320,9 @@ private fun TransactionRow(item: TransactionItem, onClick: () -> Unit) {
                     val unit = item.unitName ?: ""
                     "${item.productName} • Adjustment: $qty $unit"
                 }
+                BusinessTransactionType.PARTY_SETTLEMENT -> {
+                    "Settlement: ${item.partyName} to ${item.toPartyName}"
+                }
             }
             Text(
                 text = line2Text,
@@ -334,6 +346,7 @@ private fun TransactionTypeBadge(type: BusinessTransactionType) {
         BusinessTransactionType.TRANSFER -> MaterialTheme.colorScheme.outlineVariant
         BusinessTransactionType.EXPENSE -> MaterialTheme.colorScheme.errorContainer
         BusinessTransactionType.STOCK_ADJUSTMENT -> MaterialTheme.colorScheme.surfaceDim
+        BusinessTransactionType.PARTY_SETTLEMENT -> MaterialTheme.colorScheme.primaryContainer
     }
     val contentColor = when (type) {
         BusinessTransactionType.PURCHASE -> MaterialTheme.colorScheme.onPrimaryContainer
@@ -343,6 +356,7 @@ private fun TransactionTypeBadge(type: BusinessTransactionType) {
         BusinessTransactionType.TRANSFER -> MaterialTheme.colorScheme.onSurface
         BusinessTransactionType.EXPENSE -> MaterialTheme.colorScheme.onErrorContainer
         BusinessTransactionType.STOCK_ADJUSTMENT -> MaterialTheme.colorScheme.onSurface
+        BusinessTransactionType.PARTY_SETTLEMENT -> MaterialTheme.colorScheme.onPrimaryContainer
     }
     val label = when (type) {
         BusinessTransactionType.PURCHASE -> "Purc"
@@ -352,6 +366,7 @@ private fun TransactionTypeBadge(type: BusinessTransactionType) {
         BusinessTransactionType.TRANSFER -> "Trsf"
         BusinessTransactionType.EXPENSE -> "Exps"
         BusinessTransactionType.STOCK_ADJUSTMENT -> "Stok"
+        BusinessTransactionType.PARTY_SETTLEMENT -> "Setl"
     }
 
     Surface(

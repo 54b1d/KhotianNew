@@ -42,7 +42,18 @@ class TransactionRepositoryImpl @Inject constructor(
         ) { party, list ->
             val openingBalance = party?.openingBalance ?: BigDecimal.ZERO
             list.fold(openingBalance) { acc, entity ->
-                if (entity.type == TransactionType.DEBIT) acc.add(entity.netCost) else acc.subtract(entity.netCost)
+                when (entity.type) {
+                    TransactionType.DEBIT -> acc.add(entity.netCost)
+                    TransactionType.CREDIT -> acc.subtract(entity.netCost)
+                    TransactionType.PARTY_SETTLEMENT -> {
+                        if (entity.partyId == partyId) {
+                            acc.subtract(entity.netCost)
+                        } else if (entity.toPartyId == partyId) {
+                            acc.add(entity.netCost)
+                        } else acc
+                    }
+                    else -> acc
+                }
             }
         }
 
