@@ -6,6 +6,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AdminPanelSettings
+import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.*
@@ -69,6 +70,13 @@ fun SetupScreen(
                 onValueChange = { username = it },
                 label = { Text("Admin Username") },
                 leadingIcon = { Icon(Icons.Rounded.Person, null) },
+                trailingIcon = {
+                    if (username.isNotEmpty()) {
+                        IconButton(onClick = { username = "" }) {
+                            Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -79,6 +87,13 @@ fun SetupScreen(
                 onValueChange = { pin = it },
                 label = { Text("PIN") },
                 leadingIcon = { Icon(Icons.Rounded.Lock, null) },
+                trailingIcon = {
+                    if (pin.isNotEmpty()) {
+                        IconButton(onClick = { pin = "" }) {
+                            Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
@@ -91,6 +106,13 @@ fun SetupScreen(
                 onValueChange = { confirmPin = it },
                 label = { Text("Confirm PIN") },
                 leadingIcon = { Icon(Icons.Rounded.Lock, null) },
+                trailingIcon = {
+                    if (confirmPin.isNotEmpty()) {
+                        IconButton(onClick = { confirmPin = "" }) {
+                            Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),

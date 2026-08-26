@@ -5,6 +5,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.*
@@ -55,6 +56,13 @@ fun LoginScreen(
                 onValueChange = { username = it },
                 label = { Text("Username") },
                 leadingIcon = { Icon(Icons.Rounded.Person, null) },
+                trailingIcon = {
+                    if (username.isNotEmpty()) {
+                        IconButton(onClick = { username = "" }) {
+                            Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -65,6 +73,13 @@ fun LoginScreen(
                 onValueChange = { pin = it },
                 label = { Text("PIN") },
                 leadingIcon = { Icon(Icons.Rounded.Lock, null) },
+                trailingIcon = {
+                    if (pin.isNotEmpty()) {
+                        IconButton(onClick = { pin = "" }) {
+                            Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),

@@ -5,6 +5,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -69,6 +70,13 @@ fun ProductEntryScreen(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text("Product Name") },
+                trailingIcon = {
+                    if (name.isNotEmpty()) {
+                        IconButton(onClick = { name = "" }) {
+                            Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -107,6 +115,13 @@ fun ProductEntryScreen(
                 value = category,
                 onValueChange = { category = it },
                 label = { Text("Category (Optional)") },
+                trailingIcon = {
+                    if (category.isNotEmpty()) {
+                        IconButton(onClick = { category = "" }) {
+                            Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -114,6 +129,13 @@ fun ProductEntryScreen(
                 value = openingBalance,
                 onValueChange = { openingBalance = it },
                 label = { Text("Opening Balance (Optional)") },
+                trailingIcon = {
+                    if (openingBalance.isNotEmpty()) {
+                        IconButton(onClick = { openingBalance = "" }) {
+                            Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal)
             )

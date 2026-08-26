@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.*
@@ -55,6 +56,13 @@ fun PartiesScreen(
                     .padding(8.dp),
                 placeholder = { Text("Search parties...") },
                 leadingIcon = { Icon(Icons.Rounded.Search, null) },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                        }
+                    }
+                },
                 singleLine = true
             )
             

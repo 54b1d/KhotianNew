@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AddCircleOutline
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.PersonAdd
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -156,16 +157,57 @@ fun TransactionEntryScreen(
                 var showSrcMenu by remember { mutableStateOf(false) }
                 var showDestMenu by remember { mutableStateOf(false) }
 
+                var srcSearchQuery by remember { mutableStateOf(viewModel.sourceAccount?.name ?: "") }
+                var destSearchQuery by remember { mutableStateOf(viewModel.destinationAccount?.name ?: "") }
+
+                LaunchedEffect(viewModel.sourceAccount) {
+                    srcSearchQuery = viewModel.sourceAccount?.name ?: ""
+                }
+                LaunchedEffect(viewModel.destinationAccount) {
+                    destSearchQuery = viewModel.destinationAccount?.name ?: ""
+                }
+
+                val filteredSrcAccounts = remember(unifiedAccounts, srcSearchQuery) {
+                    if (srcSearchQuery.isBlank()) unifiedAccounts
+                    else unifiedAccounts.filter { it.name.contains(srcSearchQuery, ignoreCase = true) }
+                }
+
+                val filteredDestAccounts = remember(unifiedAccounts, destSearchQuery, viewModel.sourceAccount) {
+                    val list = unifiedAccounts.filter { 
+                        val sameId = it.id == viewModel.sourceAccount?.id
+                        val sameType = (it is UnifiedAccount.Financial && viewModel.sourceAccount is UnifiedAccount.Financial) ||
+                                       (it is UnifiedAccount.PartyAccount && viewModel.sourceAccount is UnifiedAccount.PartyAccount)
+                        !(sameId && sameType)
+                    }
+                    if (destSearchQuery.isBlank()) list
+                    else list.filter { it.name.contains(destSearchQuery, ignoreCase = true) }
+                }
+
                 ExposedDropdownMenuBox(
                     expanded = showSrcMenu,
                     onExpandedChange = { showSrcMenu = it }
                 ) {
                     OutlinedTextField(
-                        value = viewModel.sourceAccount?.name ?: "Select Source (From)",
-                        onValueChange = {},
-                        readOnly = true,
+                        value = srcSearchQuery,
+                        onValueChange = { 
+                            srcSearchQuery = it
+                            showSrcMenu = true
+                        },
+                        readOnly = false,
                         label = { Text("From Account / Party") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showSrcMenu) },
+                        trailingIcon = {
+                            Row {
+                                if (srcSearchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { 
+                                        srcSearchQuery = ""
+                                        viewModel.onSourceAccountSelected(null)
+                                    }) {
+                                        Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                                    }
+                                }
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = showSrcMenu)
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth().menuAnchor(),
                         textStyle = MaterialTheme.typography.bodySmall
                     )
@@ -173,7 +215,7 @@ fun TransactionEntryScreen(
                         expanded = showSrcMenu,
                         onDismissRequest = { showSrcMenu = false }
                     ) {
-                        unifiedAccounts.forEach { account ->
+                        filteredSrcAccounts.forEach { account ->
                             DropdownMenuItem(
                                 text = { 
                                     Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
@@ -187,6 +229,7 @@ fun TransactionEntryScreen(
                                 },
                                 onClick = {
                                     viewModel.onSourceAccountSelected(account)
+                                    srcSearchQuery = account.name
                                     showSrcMenu = false
                                 }
                             )
@@ -199,11 +242,26 @@ fun TransactionEntryScreen(
                     onExpandedChange = { showDestMenu = it }
                 ) {
                     OutlinedTextField(
-                        value = viewModel.destinationAccount?.name ?: "Select Destination (To)",
-                        onValueChange = {},
-                        readOnly = true,
+                        value = destSearchQuery,
+                        onValueChange = { 
+                            destSearchQuery = it
+                            showDestMenu = true
+                        },
+                        readOnly = false,
                         label = { Text("To Account / Party") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showDestMenu) },
+                        trailingIcon = {
+                            Row {
+                                if (destSearchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { 
+                                        destSearchQuery = ""
+                                        viewModel.onDestinationAccountSelected(null)
+                                    }) {
+                                        Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                                    }
+                                }
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = showDestMenu)
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth().menuAnchor(),
                         textStyle = MaterialTheme.typography.bodySmall
                     )
@@ -211,12 +269,7 @@ fun TransactionEntryScreen(
                         expanded = showDestMenu,
                         onDismissRequest = { showDestMenu = false }
                     ) {
-                        unifiedAccounts.filter { 
-                            val sameId = it.id == viewModel.sourceAccount?.id
-                            val sameType = (it is UnifiedAccount.Financial && viewModel.sourceAccount is UnifiedAccount.Financial) ||
-                                           (it is UnifiedAccount.PartyAccount && viewModel.sourceAccount is UnifiedAccount.PartyAccount)
-                            !(sameId && sameType)
-                        }.forEach { account ->
+                        filteredDestAccounts.forEach { account ->
                             DropdownMenuItem(
                                 text = { 
                                     Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
@@ -230,6 +283,7 @@ fun TransactionEntryScreen(
                                 },
                                 onClick = {
                                     viewModel.onDestinationAccountSelected(account)
+                                    destSearchQuery = account.name
                                     showDestMenu = false
                                 }
                             )
@@ -241,6 +295,13 @@ fun TransactionEntryScreen(
                     value = viewModel.amountText,
                     onValueChange = { viewModel.amountText = it },
                     label = { Text("Amount") },
+                    trailingIcon = {
+                        if (viewModel.amountText.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.amountText = "" }) {
+                                Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                            }
+                        }
+                    },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = MaterialTheme.typography.bodySmall
@@ -249,16 +310,44 @@ fun TransactionEntryScreen(
 
             // Party Selection
             if (!viewModel.isTransferMode && viewModel.businessType != BusinessTransactionType.EXPENSE) {
+                var partySearchQuery by remember { mutableStateOf(parties.find { it.id == viewModel.partyId }?.name ?: "") }
+                LaunchedEffect(viewModel.partyId, parties) {
+                    partySearchQuery = parties.find { it.id == viewModel.partyId }?.name ?: ""
+                }
+                val filteredPartiesList = remember(parties, partySearchQuery, viewModel.businessType) {
+                    val list = if (viewModel.businessType == BusinessTransactionType.PROFIT_DISTRIBUTION) {
+                        parties.filter { it.type == "PARTNER" }
+                    } else parties
+                    
+                    if (partySearchQuery.isBlank()) list
+                    else list.filter { it.name.contains(partySearchQuery, ignoreCase = true) }
+                }
+
                 ExposedDropdownMenuBox(
                     expanded = showPartyMenu,
                     onExpandedChange = { showPartyMenu = it }
                 ) {
                     OutlinedTextField(
-                        value = parties.find { it.id == viewModel.partyId }?.name ?: "Select Party",
-                        onValueChange = {},
-                        readOnly = true,
+                        value = partySearchQuery,
+                        onValueChange = { 
+                            partySearchQuery = it
+                            showPartyMenu = true
+                        },
+                        readOnly = false,
                         label = { Text(if (viewModel.businessType == BusinessTransactionType.PARTY_SETTLEMENT) "From Party (Payer)" else "Party") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showPartyMenu) },
+                        trailingIcon = {
+                            Row {
+                                if (partySearchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { 
+                                        partySearchQuery = ""
+                                        viewModel.partyId = 0L
+                                    }) {
+                                        Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                                    }
+                                }
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = showPartyMenu)
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth().menuAnchor(),
                         textStyle = MaterialTheme.typography.bodySmall
                     )
@@ -266,11 +355,7 @@ fun TransactionEntryScreen(
                         expanded = showPartyMenu,
                         onDismissRequest = { showPartyMenu = false }
                     ) {
-                        val filteredParties = if (viewModel.businessType == BusinessTransactionType.PROFIT_DISTRIBUTION) {
-                            parties.filter { it.type == "PARTNER" }
-                        } else parties
-                        
-                        filteredParties.forEach { party ->
+                        filteredPartiesList.forEach { party ->
                             DropdownMenuItem(
                                 text = { 
                                     Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
@@ -282,6 +367,7 @@ fun TransactionEntryScreen(
                                 },
                                 onClick = {
                                     viewModel.partyId = party.id
+                                    partySearchQuery = party.name
                                     showPartyMenu = false
                                 }
                             )
@@ -305,17 +391,42 @@ fun TransactionEntryScreen(
 
                 if (viewModel.businessType == BusinessTransactionType.PARTY_SETTLEMENT) {
                     var showToPartyMenu by remember { mutableStateOf(false) }
+                    var toPartySearchQuery by remember { mutableStateOf(parties.find { it.id == viewModel.toPartyId }?.name ?: "") }
+                    LaunchedEffect(viewModel.toPartyId, parties) {
+                        toPartySearchQuery = parties.find { it.id == viewModel.toPartyId }?.name ?: ""
+                    }
+                    val filteredToParties = remember(parties, toPartySearchQuery, viewModel.partyId) {
+                        val list = parties.filter { it.id != viewModel.partyId }
+                        if (toPartySearchQuery.isBlank()) list
+                        else list.filter { it.name.contains(toPartySearchQuery, ignoreCase = true) }
+                    }
+
                     Spacer(modifier = Modifier.height(4.dp))
                     ExposedDropdownMenuBox(
                         expanded = showToPartyMenu,
                         onExpandedChange = { showToPartyMenu = it }
                     ) {
                         OutlinedTextField(
-                            value = parties.find { it.id == viewModel.toPartyId }?.name ?: "Select Party",
-                            onValueChange = {},
-                            readOnly = true,
+                            value = toPartySearchQuery,
+                            onValueChange = { 
+                                toPartySearchQuery = it
+                                showToPartyMenu = true
+                            },
+                            readOnly = false,
                             label = { Text("To Party (Receiver)") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showToPartyMenu) },
+                            trailingIcon = {
+                                Row {
+                                    if (toPartySearchQuery.isNotEmpty()) {
+                                        IconButton(onClick = { 
+                                            toPartySearchQuery = ""
+                                            viewModel.toPartyId = 0L
+                                        }) {
+                                            Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                                        }
+                                    }
+                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = showToPartyMenu)
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth().menuAnchor(),
                             textStyle = MaterialTheme.typography.bodySmall
                         )
@@ -323,11 +434,12 @@ fun TransactionEntryScreen(
                             expanded = showToPartyMenu,
                             onDismissRequest = { showToPartyMenu = false }
                         ) {
-                            parties.filter { it.id != viewModel.partyId }.forEach { party ->
+                            filteredToParties.forEach { party ->
                                 DropdownMenuItem(
                                     text = { Text(party.name, style = MaterialTheme.typography.bodySmall) },
                                     onClick = {
                                         viewModel.toPartyId = party.id
+                                        toPartySearchQuery = party.name
                                         showToPartyMenu = false
                                     }
                                 )
@@ -342,16 +454,40 @@ fun TransactionEntryScreen(
                 viewModel.businessType == BusinessTransactionType.SALE ||
                 viewModel.businessType == BusinessTransactionType.STOCK_ADJUSTMENT) {
                 
+                var productSearchQuery by remember { mutableStateOf(products.find { it.id == viewModel.productId }?.name ?: "") }
+                LaunchedEffect(viewModel.productId, products) {
+                    productSearchQuery = products.find { it.id == viewModel.productId }?.name ?: ""
+                }
+                val filteredProducts = remember(products, productSearchQuery) {
+                    if (productSearchQuery.isBlank()) products
+                    else products.filter { it.name.contains(productSearchQuery, ignoreCase = true) }
+                }
+
                 ExposedDropdownMenuBox(
                     expanded = showProductMenu,
                     onExpandedChange = { showProductMenu = it }
                 ) {
                     OutlinedTextField(
-                        value = products.find { it.id == viewModel.productId }?.name ?: "Select Product",
-                        onValueChange = {},
-                        readOnly = true,
+                        value = productSearchQuery,
+                        onValueChange = { 
+                            productSearchQuery = it
+                            showProductMenu = true
+                        },
+                        readOnly = false,
                         label = { Text("Product") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showProductMenu) },
+                        trailingIcon = {
+                            Row {
+                                if (productSearchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { 
+                                        productSearchQuery = ""
+                                        viewModel.productId = 0L
+                                    }) {
+                                        Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                                    }
+                                }
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = showProductMenu)
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth().menuAnchor(),
                         textStyle = MaterialTheme.typography.bodySmall
                     )
@@ -359,11 +495,12 @@ fun TransactionEntryScreen(
                         expanded = showProductMenu,
                         onDismissRequest = { showProductMenu = false }
                     ) {
-                        products.forEach { product ->
+                        filteredProducts.forEach { product ->
                             DropdownMenuItem(
                                 text = { Text(product.name, style = MaterialTheme.typography.bodySmall) },
                                 onClick = {
                                     viewModel.productId = product.id
+                                    productSearchQuery = product.name
                                     // Set default unit if available
                                     product.defaultUnitId?.let { viewModel.unitId = it }
                                     showProductMenu = false
@@ -392,22 +529,53 @@ fun TransactionEntryScreen(
                         value = viewModel.quantity,
                         onValueChange = { viewModel.quantity = it },
                         label = { Text("Qty") },
+                        trailingIcon = {
+                            if (viewModel.quantity.isNotEmpty()) {
+                                IconButton(onClick = { viewModel.quantity = "" }) {
+                                    Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                                }
+                            }
+                        },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f),
                         textStyle = MaterialTheme.typography.bodySmall
                     )
                     
+                    var unitSearchQuery by remember { mutableStateOf(units.find { it.id == viewModel.unitId }?.symbol ?: "") }
+                    LaunchedEffect(viewModel.unitId, units) {
+                        unitSearchQuery = units.find { it.id == viewModel.unitId }?.symbol ?: ""
+                    }
+                    val filteredUnits = remember(units, unitSearchQuery) {
+                        if (unitSearchQuery.isBlank()) units
+                        else units.filter { it.name.contains(unitSearchQuery, ignoreCase = true) || it.symbol.contains(unitSearchQuery, ignoreCase = true) }
+                    }
+
                     ExposedDropdownMenuBox(
                         expanded = showUnitMenu,
                         onExpandedChange = { showUnitMenu = it },
                         modifier = Modifier.weight(1f)
                     ) {
                         OutlinedTextField(
-                            value = units.find { it.id == viewModel.unitId }?.symbol ?: "Unit",
-                            onValueChange = {},
-                            readOnly = true,
+                            value = unitSearchQuery,
+                            onValueChange = { 
+                                unitSearchQuery = it
+                                showUnitMenu = true
+                            },
+                            readOnly = false,
                             label = { Text("Unit") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showUnitMenu) },
+                            trailingIcon = {
+                                Row {
+                                    if (unitSearchQuery.isNotEmpty()) {
+                                        IconButton(onClick = { 
+                                            unitSearchQuery = ""
+                                            viewModel.unitId = 0L
+                                        }) {
+                                            Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                                        }
+                                    }
+                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = showUnitMenu)
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth().menuAnchor(),
                             textStyle = MaterialTheme.typography.bodySmall
                         )
@@ -415,11 +583,12 @@ fun TransactionEntryScreen(
                             expanded = showUnitMenu,
                             onDismissRequest = { showUnitMenu = false }
                         ) {
-                            units.forEach { unit ->
+                            filteredUnits.forEach { unit ->
                                 DropdownMenuItem(
                                     text = { Text("${unit.name} (${unit.symbol})", style = MaterialTheme.typography.bodySmall) },
                                     onClick = {
                                         viewModel.unitId = unit.id
+                                        unitSearchQuery = unit.symbol
                                         showUnitMenu = false
                                     }
                                 )
@@ -432,6 +601,13 @@ fun TransactionEntryScreen(
                     value = viewModel.rate,
                     onValueChange = { viewModel.rate = it },
                     label = { Text("Rate") },
+                    trailingIcon = {
+                        if (viewModel.rate.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.rate = "" }) {
+                                Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                            }
+                        }
+                    },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = MaterialTheme.typography.bodySmall
@@ -439,16 +615,40 @@ fun TransactionEntryScreen(
             } else if (!viewModel.isTransferMode) {
                 if (viewModel.businessType == BusinessTransactionType.EXPENSE) {
                     // Expense Category Selection
+                    var expenseCategorySearchQuery by remember { mutableStateOf(expenseCategories.find { it.id == viewModel.expenseCategoryId }?.name ?: "") }
+                    LaunchedEffect(viewModel.expenseCategoryId, expenseCategories) {
+                        expenseCategorySearchQuery = expenseCategories.find { it.id == viewModel.expenseCategoryId }?.name ?: ""
+                    }
+                    val filteredExpenseCategories = remember(expenseCategories, expenseCategorySearchQuery) {
+                        if (expenseCategorySearchQuery.isBlank()) expenseCategories
+                        else expenseCategories.filter { it.name.contains(expenseCategorySearchQuery, ignoreCase = true) }
+                    }
+
                     ExposedDropdownMenuBox(
                         expanded = showExpenseCategoryMenu,
                         onExpandedChange = { showExpenseCategoryMenu = it }
                     ) {
                         OutlinedTextField(
-                            value = expenseCategories.find { it.id == viewModel.expenseCategoryId }?.name ?: "Select Category",
-                            onValueChange = {},
-                            readOnly = true,
+                            value = expenseCategorySearchQuery,
+                            onValueChange = { 
+                                expenseCategorySearchQuery = it
+                                showExpenseCategoryMenu = true
+                            },
+                            readOnly = false,
                             label = { Text("Expense Category") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showExpenseCategoryMenu) },
+                            trailingIcon = {
+                                Row {
+                                    if (expenseCategorySearchQuery.isNotEmpty()) {
+                                        IconButton(onClick = { 
+                                            expenseCategorySearchQuery = ""
+                                            viewModel.expenseCategoryId = 0L
+                                        }) {
+                                            Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                                        }
+                                    }
+                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = showExpenseCategoryMenu)
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth().menuAnchor(),
                             textStyle = MaterialTheme.typography.bodySmall
                         )
@@ -456,11 +656,12 @@ fun TransactionEntryScreen(
                             expanded = showExpenseCategoryMenu,
                             onDismissRequest = { showExpenseCategoryMenu = false }
                         ) {
-                            expenseCategories.forEach { category ->
+                            filteredExpenseCategories.forEach { category ->
                                 DropdownMenuItem(
                                     text = { Text(category.name, style = MaterialTheme.typography.bodySmall) },
                                     onClick = {
                                         viewModel.expenseCategoryId = category.id
+                                        expenseCategorySearchQuery = category.name
                                         showExpenseCategoryMenu = false
                                     }
                                 )
@@ -472,6 +673,13 @@ fun TransactionEntryScreen(
                         value = viewModel.amountText,
                         onValueChange = { viewModel.amountText = it },
                         label = { Text("Amount") },
+                        trailingIcon = {
+                            if (viewModel.amountText.isNotEmpty()) {
+                                IconButton(onClick = { viewModel.amountText = "" }) {
+                                    Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                                }
+                            }
+                        },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth(),
                         textStyle = MaterialTheme.typography.bodySmall
@@ -482,6 +690,13 @@ fun TransactionEntryScreen(
                         value = viewModel.amountText,
                         onValueChange = { viewModel.amountText = it },
                         label = { Text("Settlement Amount") },
+                        trailingIcon = {
+                            if (viewModel.amountText.isNotEmpty()) {
+                                IconButton(onClick = { viewModel.amountText = "" }) {
+                                    Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                                }
+                            }
+                        },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth(),
                         textStyle = MaterialTheme.typography.bodySmall
@@ -492,6 +707,13 @@ fun TransactionEntryScreen(
                         value = viewModel.amountText,
                         onValueChange = { viewModel.amountText = it },
                         label = { Text("Amount") },
+                        trailingIcon = {
+                            if (viewModel.amountText.isNotEmpty()) {
+                                IconButton(onClick = { viewModel.amountText = "" }) {
+                                    Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                                }
+                            }
+                        },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth(),
                         textStyle = MaterialTheme.typography.bodySmall
@@ -501,6 +723,15 @@ fun TransactionEntryScreen(
 
             // Financial Account Selection (For Expense Only now, others handled by Unified)
             if (viewModel.businessType == BusinessTransactionType.EXPENSE) {
+                var accountSearchQuery by remember { mutableStateOf(financialAccounts.find { it.id == viewModel.financialAccountId }?.name ?: "") }
+                LaunchedEffect(viewModel.financialAccountId, financialAccounts) {
+                    accountSearchQuery = financialAccounts.find { it.id == viewModel.financialAccountId }?.name ?: ""
+                }
+                val filteredAccounts = remember(financialAccounts, accountSearchQuery) {
+                    if (accountSearchQuery.isBlank()) financialAccounts
+                    else financialAccounts.filter { it.name.contains(accountSearchQuery, ignoreCase = true) }
+                }
+
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -510,11 +741,26 @@ fun TransactionEntryScreen(
                         onExpandedChange = { showAccountMenu = it }
                     ) {
                         OutlinedTextField(
-                            value = financialAccounts.find { it.id == viewModel.financialAccountId }?.name ?: "Select Payment Account",
-                            onValueChange = {},
-                            readOnly = true,
+                            value = accountSearchQuery,
+                            onValueChange = { 
+                                accountSearchQuery = it
+                                showAccountMenu = true
+                            },
+                            readOnly = false,
                             label = { Text("Payment Method (Account)") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showAccountMenu) },
+                            trailingIcon = {
+                                Row {
+                                    if (accountSearchQuery.isNotEmpty()) {
+                                        IconButton(onClick = { 
+                                            accountSearchQuery = ""
+                                            viewModel.financialAccountId = 0L
+                                        }) {
+                                            Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                                        }
+                                    }
+                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = showAccountMenu)
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth().menuAnchor(),
                             textStyle = MaterialTheme.typography.bodySmall
                         )
@@ -522,7 +768,7 @@ fun TransactionEntryScreen(
                             expanded = showAccountMenu,
                             onDismissRequest = { showAccountMenu = false }
                         ) {
-                            financialAccounts.forEach { account ->
+                            filteredAccounts.forEach { account ->
                                 DropdownMenuItem(
                                     text = { 
                                         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
@@ -536,6 +782,7 @@ fun TransactionEntryScreen(
                                     },
                                     onClick = {
                                         viewModel.financialAccountId = account.id
+                                        accountSearchQuery = account.name
                                         showAccountMenu = false
                                     }
                                 )
@@ -553,6 +800,13 @@ fun TransactionEntryScreen(
                         value = viewModel.freightAmountText,
                         onValueChange = { viewModel.freightAmountText = it },
                         label = { Text("Freight Amount") },
+                        trailingIcon = {
+                            if (viewModel.freightAmountText.isNotEmpty()) {
+                                IconButton(onClick = { viewModel.freightAmountText = "" }) {
+                                    Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                                }
+                            }
+                        },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f),
                         textStyle = MaterialTheme.typography.bodySmall
@@ -618,6 +872,13 @@ fun TransactionEntryScreen(
                 value = viewModel.note,
                 onValueChange = { viewModel.note = it },
                 label = { Text("Note (Optional)") },
+                trailingIcon = {
+                    if (viewModel.note.isNotEmpty()) {
+                        IconButton(onClick = { viewModel.note = "" }) {
+                            Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 textStyle = MaterialTheme.typography.bodySmall

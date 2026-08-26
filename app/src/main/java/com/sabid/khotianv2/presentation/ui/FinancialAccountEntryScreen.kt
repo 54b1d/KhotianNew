@@ -7,6 +7,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -90,6 +91,13 @@ fun FinancialAccountEntryScreen(
                             value = name,
                             onValueChange = { name = it },
                             label = { Text("Account Name") },
+                            trailingIcon = {
+                                if (name.isNotEmpty()) {
+                                    IconButton(onClick = { name = "" }) {
+                                        Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                                    }
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth()
                         )
 
@@ -112,6 +120,13 @@ fun FinancialAccountEntryScreen(
                             value = openingBalance,
                             onValueChange = { openingBalance = it },
                             label = { Text("Opening Balance") },
+                            trailingIcon = {
+                                if (openingBalance.isNotEmpty()) {
+                                    IconButton(onClick = { openingBalance = "" }) {
+                                        Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                                    }
+                                }
+                            },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.fillMaxWidth()
                         )

@@ -8,6 +8,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -62,6 +63,13 @@ fun PartyEntryScreen(
                 value = viewModel.name,
                 onValueChange = { viewModel.name = it },
                 label = { Text("Party Name") },
+                trailingIcon = {
+                    if (viewModel.name.isNotEmpty()) {
+                        IconButton(onClick = { viewModel.name = "" }) {
+                            Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -70,6 +78,13 @@ fun PartyEntryScreen(
                 value = viewModel.phoneNumber,
                 onValueChange = { viewModel.phoneNumber = it },
                 label = { Text("Phone Number (Optional)") },
+                trailingIcon = {
+                    if (viewModel.phoneNumber.isNotEmpty()) {
+                        IconButton(onClick = { viewModel.phoneNumber = "" }) {
+                            Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 singleLine = true
@@ -79,6 +94,13 @@ fun PartyEntryScreen(
                 value = viewModel.address,
                 onValueChange = { viewModel.address = it },
                 label = { Text("Address (Optional)") },
+                trailingIcon = {
+                    if (viewModel.address.isNotEmpty()) {
+                        IconButton(onClick = { viewModel.address = "" }) {
+                            Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2
             )
@@ -87,6 +109,13 @@ fun PartyEntryScreen(
                 value = viewModel.openingBalance,
                 onValueChange = { viewModel.openingBalance = it },
                 label = { Text("Opening Balance (Optional)") },
+                trailingIcon = {
+                    if (viewModel.openingBalance.isNotEmpty()) {
+                        IconButton(onClick = { viewModel.openingBalance = "" }) {
+                            Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 singleLine = true

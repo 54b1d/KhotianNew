@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -136,6 +137,13 @@ fun StocktakeItem(
                     value = state.physicalQuantity,
                     onValueChange = onPhysicalQtyChange,
                     label = { Text("Physical Qty", style = MaterialTheme.typography.labelSmall) },
+                    trailingIcon = {
+                        if (state.physicalQuantity.isNotEmpty()) {
+                            IconButton(onClick = { onPhysicalQtyChange("") }) {
+                                Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                            }
+                        }
+                    },
                     modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true
@@ -144,6 +152,13 @@ fun StocktakeItem(
                     value = state.unitPrice,
                     onValueChange = onUnitPriceChange,
                     label = { Text("Valuation Price", style = MaterialTheme.typography.labelSmall) },
+                    trailingIcon = {
+                        if (state.unitPrice.isNotEmpty()) {
+                            IconButton(onClick = { onUnitPriceChange("") }) {
+                                Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                            }
+                        }
+                    },
                     modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true

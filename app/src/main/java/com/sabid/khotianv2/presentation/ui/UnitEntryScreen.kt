@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -50,6 +51,13 @@ fun UnitEntryScreen(
                     value = name,
                     onValueChange = viewModel::onNameChange,
                     label = { Text("Unit Name (e.g., Kilogram)") },
+                    trailingIcon = {
+                        if (name.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.onNameChange("") }) {
+                                Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                            }
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -58,6 +66,13 @@ fun UnitEntryScreen(
                         value = symbol,
                         onValueChange = viewModel::onSymbolChange,
                         label = { Text("Symbol (e.g., kg)") },
+                        trailingIcon = {
+                            if (symbol.isNotEmpty()) {
+                                IconButton(onClick = { viewModel.onSymbolChange("") }) {
+                                    Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                                }
+                            }
+                        },
                         modifier = Modifier.weight(1f)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -65,6 +80,13 @@ fun UnitEntryScreen(
                         value = multiplier,
                         onValueChange = viewModel::onMultiplierChange,
                         label = { Text("Multiplier") },
+                        trailingIcon = {
+                            if (multiplier.isNotEmpty()) {
+                                IconButton(onClick = { viewModel.onMultiplierChange("") }) {
+                                    Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                                }
+                            }
+                        },
                         modifier = Modifier.weight(1f)
                     )
                 }
