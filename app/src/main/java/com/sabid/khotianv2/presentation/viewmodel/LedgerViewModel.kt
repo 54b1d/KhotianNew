@@ -1,12 +1,12 @@
 package com.sabid.khotianv2.presentation.viewmodel
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sabid.khotianv2.domain.manager.PermissionManager
-import com.sabid.khotianv2.domain.model.AppUnit
-import com.sabid.khotianv2.domain.model.Transaction
-import com.sabid.khotianv2.domain.model.TransactionType
-import com.sabid.khotianv2.domain.model.UserPermissions
+import com.sabid.khotianv2.domain.model.*
 import com.sabid.khotianv2.domain.repository.BusinessRepository
 import com.sabid.khotianv2.domain.repository.UnitRepository
 import com.sabid.khotianv2.domain.usecase.GetUnifiedLedgerUseCase
@@ -14,12 +14,12 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
 import java.math.BigDecimal
+import java.time.Instant
+import java.time.LocalDate
+import java.time.YearMonth
+import java.time.ZoneId
 
 data class TransactionItem(
     val transaction: Transaction,
@@ -38,13 +38,20 @@ class LedgerViewModel @AssistedInject constructor(
     private val permissionManager: PermissionManager
 ) : ViewModel() {
 
+    private val _selectedMonth = MutableStateFlow(YearMonth.now())
+    val selectedMonth: StateFlow<YearMonth> = _selectedMonth.asStateFlow()
+
+    val party: StateFlow<Party?> = businessRepository.getParty(partyId)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     val transactions: StateFlow<List<TransactionItem>> = combine(
         getUnifiedLedgerUseCase(partyId),
         unitRepository.getAllUnits(),
-        businessRepository.getParties()
-    ) { (openingBalance, list), units, parties ->
+        businessRepository.getParties(),
+        _selectedMonth
+    ) { (openingBalance, list), units, parties, targetMonth ->
         var currentBalance = openingBalance
-        list.sortedBy { it.timestamp }.map { transaction ->
+        val allProcessed = list.sortedBy { it.timestamp }.map { transaction ->
             val change = when (transaction.type) {
                 TransactionType.DEBIT -> transaction.netCost
                 TransactionType.CREDIT -> transaction.netCost.negate()
@@ -72,6 +79,11 @@ class LedgerViewModel @AssistedInject constructor(
             }
             
             TransactionItem(transaction, currentBalance, unit?.symbol, otherPartyName, isCredit)
+        }
+
+        allProcessed.filter { 
+            val date = Instant.ofEpochMilli(it.transaction.timestamp).atZone(ZoneId.systemDefault()).toLocalDate()
+            YearMonth.from(date) == targetMonth
         }.reversed()
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -79,6 +91,14 @@ class LedgerViewModel @AssistedInject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BigDecimal.ZERO)
 
     val userPermissions: StateFlow<UserPermissions> = permissionManager.userPermissions
+
+    fun nextMonth() {
+        _selectedMonth.value = _selectedMonth.value.plusMonths(1)
+    }
+
+    fun previousMonth() {
+        _selectedMonth.value = _selectedMonth.value.minusMonths(1)
+    }
 
     @AssistedFactory
     interface Factory {
