@@ -34,8 +34,7 @@ fun DashboardScreen(
     onUnitManagementClick: () -> Unit,
     onBackupClick: () -> Unit,
     onProfitLossClick: () -> Unit,
-    onStocktakeClick: () -> Unit,
-    onBackClick: () -> Unit
+    onStocktakeClick: () -> Unit
 ) {
     val productStocks by viewModel.productStocks.collectAsState()
     val financialAccounts by viewModel.financialAccounts.collectAsState()
@@ -44,67 +43,13 @@ fun DashboardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Dashboard", style = MaterialTheme.typography.titleMedium) },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
-                    }
-                }
+                title = { Text("Dashboard", style = MaterialTheme.typography.titleMedium) }
             )
         },
         floatingActionButton = {
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                if (permissions.hasPermission(PermissionType.CAN_MANAGE_FACTORY)) {
-                    ExtendedFloatingActionButton(
-                        onClick = onCrushingEntryClick,
-                        icon = { Icon(Icons.Rounded.Factory, null) },
-                        text = { Text("Crushing") },
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    )
-                }
-                if (permissions.hasPermission(PermissionType.CAN_EDIT_TRANSACTIONS)) {
-                    SmallFloatingActionButton(
-                        onClick = onManageAccountsClick,
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    ) {
-                        Icon(Icons.Rounded.AccountBalance, contentDescription = "Accounts")
-                    }
-                    SmallFloatingActionButton(
-                        onClick = onBackupClick,
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    ) {
-                        Icon(Icons.Rounded.Backup, contentDescription = "Backup")
-                    }
-                    SmallFloatingActionButton(
-                        onClick = onProfitLossClick,
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    ) {
-                        Icon(Icons.Rounded.Assessment, contentDescription = "Profit & Loss")
-                    }
-                    SmallFloatingActionButton(
-                        onClick = onStocktakeClick,
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    ) {
-                        Icon(Icons.Rounded.Inventory, contentDescription = "Inventory Check")
-                    }
-                    SmallFloatingActionButton(
-                        onClick = onUnitManagementClick,
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    ) {
-                        Icon(Icons.Rounded.Settings, contentDescription = "Units")
-                    }
-                    SmallFloatingActionButton(
-                        onClick = onAddPartyClick,
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                    ) {
-                        Icon(Icons.Rounded.PersonAdd, contentDescription = "Add Party")
-                    }
-                    FloatingActionButton(onClick = onAddTransactionClick) {
-                        Icon(Icons.Rounded.Add, contentDescription = "Add Transaction")
-                    }
+            if (permissions.hasPermission(PermissionType.CAN_EDIT_TRANSACTIONS)) {
+                FloatingActionButton(onClick = onAddTransactionClick) {
+                    Icon(Icons.Rounded.Add, contentDescription = "Add Transaction")
                 }
             }
         }
@@ -119,6 +64,68 @@ fun DashboardScreen(
                 .padding(padding)
                 .imePadding()
         ) {
+            // Management Tools Section
+            if (permissions.hasPermission(PermissionType.CAN_EDIT_TRANSACTIONS)) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Text(
+                        "Management Tools",
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
+
+                item {
+                    ActionCard(
+                        title = "Crushing",
+                        icon = Icons.Rounded.Factory,
+                        onClick = onCrushingEntryClick,
+                        enabled = permissions.hasPermission(PermissionType.CAN_MANAGE_FACTORY)
+                    )
+                }
+                item {
+                    ActionCard(
+                        title = "Accounts",
+                        icon = Icons.Rounded.AccountBalance,
+                        onClick = onManageAccountsClick
+                    )
+                }
+                item {
+                    ActionCard(
+                        title = "Add Party",
+                        icon = Icons.Rounded.PersonAdd,
+                        onClick = onAddPartyClick
+                    )
+                }
+                item {
+                    ActionCard(
+                        title = "Profit & Loss",
+                        icon = Icons.Rounded.Assessment,
+                        onClick = onProfitLossClick
+                    )
+                }
+                item {
+                    ActionCard(
+                        title = "Inventory",
+                        icon = Icons.Rounded.Inventory,
+                        onClick = onStocktakeClick
+                    )
+                }
+                item {
+                    ActionCard(
+                        title = "Backup",
+                        icon = Icons.Rounded.Backup,
+                        onClick = onBackupClick
+                    )
+                }
+                item {
+                    ActionCard(
+                        title = "Settings",
+                        icon = Icons.Rounded.Settings,
+                        onClick = onUnitManagementClick
+                    )
+                }
+            }
+
             if (financialAccounts.isNotEmpty()) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Text(
@@ -144,6 +151,44 @@ fun DashboardScreen(
                     StockCard(stock = stock)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ActionCard(
+    title: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+    enabled: Boolean = true
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled, onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = if (enabled) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                modifier = Modifier.size(32.dp),
+                tint = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (enabled) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

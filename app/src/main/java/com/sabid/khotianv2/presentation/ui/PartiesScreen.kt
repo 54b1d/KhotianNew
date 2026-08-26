@@ -24,8 +24,7 @@ import com.sabid.khotianv2.presentation.viewmodel.DashboardViewModel
 fun PartiesScreen(
     viewModel: DashboardViewModel,
     onPartyClick: (Long) -> Unit,
-    onAddPartyClick: () -> Unit,
-    onBackClick: () -> Unit
+    onAddPartyClick: () -> Unit
 ) {
     val parties by viewModel.parties.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
@@ -38,12 +37,7 @@ fun PartiesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Parties") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
-                    }
-                }
+                title = { Text("Parties") }
             )
         },
         floatingActionButton = {

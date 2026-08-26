@@ -28,9 +28,7 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     onAddTransactionClick: () -> Unit,
     onTransactionClick: (Transaction) -> Unit,
-    onAccountClick: (Long) -> Unit,
-    onPartiesClick: () -> Unit,
-    onDashboardClick: () -> Unit
+    onAccountClick: (Long) -> Unit
 ) {
     val selectedDate by viewModel.selectedDate.collectAsState()
     val homeData by viewModel.homeData.collectAsState()
@@ -41,15 +39,7 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Daily Operations", style = MaterialTheme.typography.titleMedium) },
-                actions = {
-                    IconButton(onClick = onPartiesClick) {
-                        Icon(Icons.Rounded.People, contentDescription = "Parties")
-                    }
-                    IconButton(onClick = onDashboardClick) {
-                        Icon(Icons.Rounded.Dashboard, contentDescription = "Dashboard")
-                    }
-                }
+                title = { Text("Daily Operations", style = MaterialTheme.typography.titleMedium) }
             )
         },
         floatingActionButton = {
