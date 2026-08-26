@@ -33,8 +33,8 @@ class SampleDataGenerator @Inject constructor(
             sessionManager.startSession(adminId.toString())
 
             // 1.5 Expense Categories
-            db.expenseCategoryDao().insertCategory(ExpenseCategoryEntity(name = "Rent"))
-            db.expenseCategoryDao().insertCategory(ExpenseCategoryEntity(name = "Labor"))
+            val rentCategoryId = db.expenseCategoryDao().insertCategory(ExpenseCategoryEntity(name = "Rent"))
+            val laborCategoryId = db.expenseCategoryDao().insertCategory(ExpenseCategoryEntity(name = "Labor"))
             db.expenseCategoryDao().insertCategory(ExpenseCategoryEntity(name = "Utilities"))
 
             // 2. Units
@@ -73,6 +73,14 @@ class SampleDataGenerator @Inject constructor(
                     currentBalance = BigDecimal("50000.00")
                 )
             )
+            val bkashId = db.financialAccountDao().insertAccount(
+                FinancialAccountEntity(
+                    name = "bKash (Merchant)",
+                    type = FinancialAccountType.BANK,
+                    openingBalance = BigDecimal("5000.00"),
+                    currentBalance = BigDecimal("5000.00")
+                )
+            )
 
             // 5. Parties
             val supplierAlphaId = db.partyDao().insertParty(
@@ -91,11 +99,34 @@ class SampleDataGenerator @Inject constructor(
                     type = "CUSTOMER"
                 )
             )
+            val investorGammaId = db.partyDao().insertParty(
+                PartyEntity(
+                    name = "Investor Gamma",
+                    phoneNumber = "0111222333",
+                    address = "Wealth District",
+                    type = "INVESTOR"
+                )
+            )
 
             // 6. Sample Transactions
             val creatorId = adminId.toString()
 
-            // A purchase of seeds: 1000kg at 80/kg = 80,000. Born by seller.
+            // A. Equity Contribution: 100,000 from Investor Gamma to Bank
+            val equityAmount = BigDecimal("100000.00")
+            db.transactionDao().insertTransaction(
+                TransactionEntity(
+                    partyId = investorGammaId,
+                    financialAccountId = businessBankId,
+                    amount = equityAmount,
+                    type = TransactionType.EQUITY,
+                    businessType = BusinessTransactionType.EQUITY_CONTRIBUTION,
+                    note = "Initial capital injection",
+                    createdBy = creatorId
+                )
+            )
+            db.financialAccountDao().updateBalance(businessBankId, equityAmount)
+
+            // B. Purchase of seeds: 1000kg at 80/kg = 80,000. Born by seller.
             val purchaseAmount = BigDecimal("80000.00")
             db.transactionDao().insertTransaction(
                 TransactionEntity(
@@ -108,12 +139,12 @@ class SampleDataGenerator @Inject constructor(
                     amount = purchaseAmount,
                     type = TransactionType.CREDIT,
                     businessType = BusinessTransactionType.PURCHASE,
-                    note = "Initial seed stock purchase",
+                    note = "Bulk seed stock purchase",
                     createdBy = creatorId
                 )
             )
 
-            // A sale of oil: 500kg at 180/kg = 90,000.
+            // C. Sale of oil: 500kg at 180/kg = 90,000.
             val saleAmount = BigDecimal("90000.00")
             db.transactionDao().insertTransaction(
                 TransactionEntity(
@@ -126,40 +157,129 @@ class SampleDataGenerator @Inject constructor(
                     amount = saleAmount,
                     type = TransactionType.DEBIT,
                     businessType = BusinessTransactionType.SALE,
-                    note = "First oil sale",
+                    note = "Major oil sale to retail distributor",
                     createdBy = creatorId
                 )
             )
 
-            // A payment to a supplier: 50,000 from Business Bank
-            val paymentAmount = BigDecimal("50000.00")
+            // D. Payment to supplier: 50,000 from Business Bank
+            val paymentMadeAmount = BigDecimal("50000.00")
             db.transactionDao().insertTransaction(
                 TransactionEntity(
                     partyId = supplierAlphaId,
                     financialAccountId = businessBankId,
-                    amount = paymentAmount,
-                    type = TransactionType.DEBIT, // Debit party (reduce payable)
+                    amount = paymentMadeAmount,
+                    type = TransactionType.DEBIT,
                     businessType = BusinessTransactionType.PAYMENT_MADE,
-                    note = "Partial payment for seeds",
+                    note = "Partial payment for seed invoice",
                     createdBy = creatorId
                 )
             )
-            db.financialAccountDao().updateBalance(businessBankId, paymentAmount.negate())
+            db.financialAccountDao().updateBalance(businessBankId, paymentMadeAmount.negate())
 
-            // A bank-to-cash transfer: 5,000 from Bank to Cash
-            val transferAmount = BigDecimal("5000.00")
+            // E. Payment received from customer: 40,000 into bKash
+            val paymentReceivedAmount = BigDecimal("40000.00")
+            db.transactionDao().insertTransaction(
+                TransactionEntity(
+                    partyId = buyerBetaId,
+                    financialAccountId = bkashId,
+                    amount = paymentReceivedAmount,
+                    type = TransactionType.CREDIT,
+                    businessType = BusinessTransactionType.PAYMENT_RECEIVED,
+                    note = "Downpayment via mobile banking",
+                    createdBy = creatorId
+                )
+            )
+            db.financialAccountDao().updateBalance(bkashId, paymentReceivedAmount)
+
+            // F. Expense: Rent 12,000 from Business Bank
+            val rentAmount = BigDecimal("12000.00")
+            db.transactionDao().insertTransaction(
+                TransactionEntity(
+                    expenseCategoryId = rentCategoryId,
+                    financialAccountId = businessBankId,
+                    amount = rentAmount,
+                    type = TransactionType.EXPENSE,
+                    businessType = BusinessTransactionType.EXPENSE,
+                    note = "Monthly warehouse rent",
+                    createdBy = creatorId
+                )
+            )
+            db.financialAccountDao().updateBalance(businessBankId, rentAmount.negate())
+
+            // G. Bank-to-Cash transfer: 10,000 from Bank to Cash
+            val bankToCashAmount = BigDecimal("10000.00")
             db.transactionDao().insertTransaction(
                 TransactionEntity(
                     financialAccountId = businessBankId,
                     toFinancialAccountId = mainCashId,
-                    amount = transferAmount,
+                    amount = bankToCashAmount,
                     type = TransactionType.TRANSFER,
                     businessType = BusinessTransactionType.TRANSFER,
-                    note = "Cash withdrawal for expenses",
+                    note = "Cash withdrawal for daily operations",
                     createdBy = creatorId
                 )
             )
-            db.financialAccountDao().transferBalance(businessBankId, mainCashId, transferAmount)
+            db.financialAccountDao().transferBalance(businessBankId, mainCashId, bankToCashAmount)
+
+            // H. Bank-to-bKash transfer: 5,000 from Bank to bKash
+            val bankToBkashAmount = BigDecimal("5000.00")
+            db.transactionDao().insertTransaction(
+                TransactionEntity(
+                    financialAccountId = businessBankId,
+                    toFinancialAccountId = bkashId,
+                    amount = bankToBkashAmount,
+                    type = TransactionType.TRANSFER,
+                    businessType = BusinessTransactionType.TRANSFER,
+                    note = "Replenishing mobile money float",
+                    createdBy = creatorId
+                )
+            )
+            db.financialAccountDao().transferBalance(businessBankId, bkashId, bankToBkashAmount)
+
+            // I. Stock Adjustment: -5kg Mustard Seed (Wastage)
+            db.transactionDao().insertTransaction(
+                TransactionEntity(
+                    productId = mustardSeedId,
+                    unitId = unitKgId,
+                    quantity = BigDecimal("-5"),
+                    baseQuantity = BigDecimal("-5"),
+                    amount = BigDecimal.ZERO,
+                    type = TransactionType.STOCK_ADJUSTMENT,
+                    businessType = BusinessTransactionType.STOCK_ADJUSTMENT,
+                    note = "Seed wastage during handling",
+                    createdBy = creatorId
+                )
+            )
+
+            // J. Profit Distribution: 2,000 from Cash
+            val profitDistAmount = BigDecimal("2000.00")
+            db.transactionDao().insertTransaction(
+                TransactionEntity(
+                    financialAccountId = mainCashId,
+                    amount = profitDistAmount,
+                    type = TransactionType.EQUITY,
+                    businessType = BusinessTransactionType.PROFIT_DISTRIBUTION,
+                    note = "Owner dividend withdrawal",
+                    createdBy = creatorId
+                )
+            )
+            db.financialAccountDao().updateBalance(mainCashId, profitDistAmount.negate())
+
+            // K. Labor Expense: 3,500 from Cash
+            val laborAmount = BigDecimal("3500.00")
+            db.transactionDao().insertTransaction(
+                TransactionEntity(
+                    expenseCategoryId = laborCategoryId,
+                    financialAccountId = mainCashId,
+                    amount = laborAmount,
+                    type = TransactionType.EXPENSE,
+                    businessType = BusinessTransactionType.EXPENSE,
+                    note = "Daily labor payment",
+                    createdBy = creatorId
+                )
+            )
+            db.financialAccountDao().updateBalance(mainCashId, laborAmount.negate())
         }
     }
 }
