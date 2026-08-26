@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.sabid.khotianv2.domain.model.BusinessTransactionType
@@ -90,7 +91,8 @@ fun AccountTransactionRow(
     onEditClick: () -> Unit
 ) {
     val transaction = item.transaction
-    val dateFormat = SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault())
+    val locale = LocalConfiguration.current.locales[0]
+    val dateFormat = remember(locale) { SimpleDateFormat("dd MMM, hh:mm a", locale) }
     val dateString = dateFormat.format(Date(transaction.timestamp))
     
     val isTransfer = transaction.businessType == BusinessTransactionType.TRANSFER
@@ -202,8 +204,9 @@ fun AccountTransactionRow(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.outline
                             )
+                            val fullDateFormat = remember(locale) { SimpleDateFormat("dd/MM/yyyy hh:mm a", locale) }
                             Text(
-                                text = "Full Time: ${SimpleDateFormat("dd/MM/yyyy hh:mm a", Locale.getDefault()).format(Date(transaction.timestamp))}",
+                                text = "Full Time: ${fullDateFormat.format(Date(transaction.timestamp))}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.outline
                             )

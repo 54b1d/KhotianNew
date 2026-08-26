@@ -14,7 +14,7 @@ import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.People
 import androidx.compose.material3.*
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
 import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
 import androidx.compose.material3.adaptive.navigation3.rememberListDetailSceneStrategy
@@ -25,7 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -67,7 +67,7 @@ class MainActivity : ComponentActivity() {
                             TextButton(onClick = { mainViewModel.dismissUpdate() }) {
                                 Text("Later")
                             }
-                        }
+                        },
                     )
                 }
 
@@ -77,7 +77,7 @@ class MainActivity : ComponentActivity() {
                     }
                 } else {
                     val backStack = rememberNavBackStack(startRoute!!)
-                    val windowAdaptiveInfo = currentWindowAdaptiveInfo()
+                    val windowAdaptiveInfo = currentWindowAdaptiveInfoV2()
                     val directive = remember(windowAdaptiveInfo) {
                         calculatePaneScaffoldDirective(windowAdaptiveInfo)
                             .copy(horizontalPartitionSpacerSize = 0.dp)
@@ -90,7 +90,7 @@ class MainActivity : ComponentActivity() {
                     Scaffold(
                         contentWindowInsets = WindowInsets(0, 0, 0, 0),
                         bottomBar = {
-                            if (currentRoute is NavRoutes.Home || currentRoute is NavRoutes.Parties || currentRoute is NavRoutes.Dashboard) {
+                            if ((currentRoute is NavRoutes.Home) || (currentRoute is NavRoutes.Parties) || (currentRoute is NavRoutes.Dashboard)) {
                                 NavigationBar {
                                     NavigationBarItem(
                                         selected = currentRoute is NavRoutes.Home,
@@ -101,7 +101,7 @@ class MainActivity : ComponentActivity() {
                                             }
                                         },
                                         icon = { Icon(Icons.Rounded.Home, contentDescription = "Home") },
-                                        label = { Text("Home") }
+                                        label = { Text("Home") },
                                     )
                                     NavigationBarItem(
                                         selected = currentRoute is NavRoutes.Parties,
@@ -133,27 +133,21 @@ class MainActivity : ComponentActivity() {
                             NavDisplay(
                                 backStack = backStack,
                                 onBack = { backStack.removeLastOrNull() },
-                                sceneStrategy = listDetailStrategy,
+                                sceneStrategies = listOf(listDetailStrategy),
                                 entryProvider = entryProvider {
                                     entry<NavRoutes.Login> {
                                         val viewModel: LoginViewModel = hiltViewModel()
-                                        LoginScreen(
-                                            viewModel = viewModel,
-                                            onLoginSuccess = {
-                                                backStack.clear()
-                                                backStack.add(NavRoutes.Home)
-                                            }
-                                        )
+                                        LoginScreen(viewModel = viewModel) {
+                                            backStack.clear()
+                                            backStack.add(NavRoutes.Home)
+                                        }
                                     }
                                     entry<NavRoutes.Setup> {
                                         val viewModel: SetupViewModel = hiltViewModel()
-                                        SetupScreen(
-                                            viewModel = viewModel,
-                                            onSetupSuccess = {
-                                                backStack.clear()
-                                                backStack.add(NavRoutes.Home)
-                                            }
-                                        )
+                                        SetupScreen(viewModel = viewModel) {
+                                            backStack.clear()
+                                            backStack.add(NavRoutes.Home)
+                                        }
                                     }
                                     entry<NavRoutes.Home>(
                                         metadata = ListDetailSceneStrategy.listPane()

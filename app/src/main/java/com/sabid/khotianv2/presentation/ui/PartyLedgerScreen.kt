@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -182,7 +183,6 @@ private fun HeaderText(text: String, modifier: Modifier, textAlign: TextAlign = 
     )
 }
 
-private val dateFormat = SimpleDateFormat("dd/MM/yy", Locale.getDefault())
 
 @Composable
 private fun LedgerRow(
@@ -192,6 +192,9 @@ private fun LedgerRow(
     onEditClick: () -> Unit
 ) {
     val transaction = item.transaction
+    val locale = LocalConfiguration.current.locales[0]
+    val dateFormat = remember(locale) { SimpleDateFormat("dd/MM/yy", locale) }
+    
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -311,8 +314,9 @@ private fun LedgerRow(
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.outline
                         )
+                        val timeFormat = remember(locale) { SimpleDateFormat("hh:mm a", locale) }
                         Text(
-                            text = "Time: ${SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(transaction.timestamp))}",
+                            text = "Time: ${timeFormat.format(Date(transaction.timestamp))}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.outline
                         )

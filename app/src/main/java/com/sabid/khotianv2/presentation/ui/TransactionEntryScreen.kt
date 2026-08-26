@@ -11,6 +11,7 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.PersonAdd
 import androidx.compose.material3.*
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -209,7 +210,7 @@ fun TransactionEntryScreen(
                                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = showSrcMenu)
                             }
                         },
-                        modifier = Modifier.fillMaxWidth().menuAnchor(),
+                        modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryEditable),
                         textStyle = MaterialTheme.typography.bodySmall
                     )
                     ExposedDropdownMenu(
@@ -263,7 +264,7 @@ fun TransactionEntryScreen(
                                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = showDestMenu)
                             }
                         },
-                        modifier = Modifier.fillMaxWidth().menuAnchor(),
+                        modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryEditable),
                         textStyle = MaterialTheme.typography.bodySmall
                     )
                     ExposedDropdownMenu(
@@ -349,7 +350,7 @@ fun TransactionEntryScreen(
                                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = showPartyMenu)
                             }
                         },
-                        modifier = Modifier.fillMaxWidth().menuAnchor(),
+                        modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryEditable),
                         textStyle = MaterialTheme.typography.bodySmall
                     )
                     ExposedDropdownMenu(
@@ -428,7 +429,7 @@ fun TransactionEntryScreen(
                                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = showToPartyMenu)
                                 }
                             },
-                            modifier = Modifier.fillMaxWidth().menuAnchor(),
+                            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryEditable),
                             textStyle = MaterialTheme.typography.bodySmall
                         )
                         ExposedDropdownMenu(
@@ -489,7 +490,7 @@ fun TransactionEntryScreen(
                                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = showProductMenu)
                             }
                         },
-                        modifier = Modifier.fillMaxWidth().menuAnchor(),
+                        modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryEditable),
                         textStyle = MaterialTheme.typography.bodySmall
                     )
                     ExposedDropdownMenu(
@@ -577,7 +578,7 @@ fun TransactionEntryScreen(
                                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = showUnitMenu)
                                 }
                             },
-                            modifier = Modifier.fillMaxWidth().menuAnchor(),
+                            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryEditable),
                             textStyle = MaterialTheme.typography.bodySmall
                         )
                         ExposedDropdownMenu(
@@ -650,7 +651,7 @@ fun TransactionEntryScreen(
                                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = showExpenseCategoryMenu)
                                 }
                             },
-                            modifier = Modifier.fillMaxWidth().menuAnchor(),
+                            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryEditable),
                             textStyle = MaterialTheme.typography.bodySmall
                         )
                         ExposedDropdownMenu(
@@ -762,7 +763,7 @@ fun TransactionEntryScreen(
                                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = showAccountMenu)
                                 }
                             },
-                            modifier = Modifier.fillMaxWidth().menuAnchor(),
+                            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryEditable),
                             textStyle = MaterialTheme.typography.bodySmall
                         )
                         ExposedDropdownMenu(

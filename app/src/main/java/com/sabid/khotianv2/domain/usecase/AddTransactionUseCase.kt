@@ -12,7 +12,7 @@ class AddTransactionUseCase @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val financialAccountRepository: FinancialAccountRepository,
     private val permissionManager: PermissionManager,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
 ) {
     suspend operator fun invoke(
         transactionId: Long? = null,
@@ -30,20 +30,18 @@ class AddTransactionUseCase @Inject constructor(
         freightAmount: BigDecimal = BigDecimal.ZERO,
         freightType: FreightType = FreightType.BORN_BY_SELLER,
         businessType: BusinessTransactionType,
-        note: String?
+        note: String?,
     ): Result<Long> {
         if (!permissionManager.hasPermission(PermissionType.CAN_EDIT_TRANSACTIONS)) {
             return Result.failure(Exception("Permission denied"))
         }
 
         // 1. Fetch OLD transaction if editing
-        val oldTransaction = if (transactionId != null) {
-            transactionRepository.getTransactionById(transactionId)
-        } else null
+        val oldTransaction = transactionId?.let { transactionRepository.getTransactionById(it) }
 
         // Validation
         if (businessType == BusinessTransactionType.TRANSFER) {
-            if (financialAccountId == null || toFinancialAccountId == null) {
+            if ((financialAccountId == null) || (toFinancialAccountId == null)) {
                 return Result.failure(Exception("Both source and destination accounts must be selected for transfer"))
             }
             if (financialAccountId == toFinancialAccountId) {
@@ -61,13 +59,13 @@ class AddTransactionUseCase @Inject constructor(
                 return Result.failure(Exception("Product must be selected for stock adjustment"))
             }
         } else if (businessType == BusinessTransactionType.PARTY_SETTLEMENT) {
-            if (partyId == null || toPartyId == null) {
+            if ((partyId == null) || (toPartyId == null)) {
                 return Result.failure(Exception("Both 'From Party' and 'To Party' must be selected for settlement"))
             }
             if (partyId == toPartyId) {
                 return Result.failure(Exception("Source and destination parties must be different"))
             }
-        } else if (businessType == BusinessTransactionType.EQUITY_CONTRIBUTION || businessType == BusinessTransactionType.EQUITY_WITHDRAWAL) {
+        } else if ((businessType == BusinessTransactionType.EQUITY_CONTRIBUTION) || (businessType == BusinessTransactionType.EQUITY_WITHDRAWAL)) {
             if (partyId == null) {
                 return Result.failure(Exception("Partner must be selected"))
             }
@@ -111,24 +109,26 @@ class AddTransactionUseCase @Inject constructor(
         }
 
         // 2. Reverse effects of OLD transaction
-        if (oldTransaction != null) {
-            if (oldTransaction.businessType == BusinessTransactionType.TRANSFER) {
-                if (oldTransaction.financialAccountId != null && oldTransaction.toFinancialAccountId != null) {
+        oldTransaction?.let { old ->
+            if (old.businessType == BusinessTransactionType.TRANSFER) {
+                if (old.financialAccountId != null && old.toFinancialAccountId != null) {
                     financialAccountRepository.transferBalance(
-                        oldTransaction.toFinancialAccountId,
-                        oldTransaction.financialAccountId,
-                        oldTransaction.amount
+                        old.toFinancialAccountId,
+                        old.financialAccountId,
+                        old.amount,
                     )
                 }
-            } else if (oldTransaction.financialAccountId != null) {
-                val oldBalanceChange = when (oldTransaction.businessType) {
-                    BusinessTransactionType.PAYMENT_RECEIVED, BusinessTransactionType.EQUITY_CONTRIBUTION -> oldTransaction.amount
-                    BusinessTransactionType.PAYMENT_MADE, BusinessTransactionType.EXPENSE, 
-                    BusinessTransactionType.EQUITY_WITHDRAWAL, BusinessTransactionType.PROFIT_DISTRIBUTION -> oldTransaction.amount.negate()
+            } else if (old.financialAccountId != null) {
+                val oldBalanceChange = when (old.businessType) {
+                    BusinessTransactionType.PAYMENT_RECEIVED, BusinessTransactionType.EQUITY_CONTRIBUTION -> old.amount
+                    BusinessTransactionType.PAYMENT_MADE, BusinessTransactionType.EXPENSE,
+                    BusinessTransactionType.EQUITY_WITHDRAWAL,
+                    BusinessTransactionType.PROFIT_DISTRIBUTION ->
+                        old.amount.negate()
                     else -> BigDecimal.ZERO
                 }
                 if (oldBalanceChange != BigDecimal.ZERO) {
-                    financialAccountRepository.updateBalance(oldTransaction.financialAccountId, oldBalanceChange.negate())
+                    financialAccountRepository.updateBalance(old.financialAccountId, oldBalanceChange.negate())
                 }
             }
         }
