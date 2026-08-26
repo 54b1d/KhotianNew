@@ -89,10 +89,12 @@ class AddTransactionUseCase @Inject constructor(
 
         val userId = sessionManager.currentUserId.value ?: return Result.failure(Exception("User not authenticated"))
 
-        // Mapping Business Type to DEBIT/CREDIT/TRANSFER/EXPENSE/STOCK_ADJUSTMENT/PARTY_SETTLEMENT
+        // Mapping Business Type to DEBIT/CREDIT/TRANSFER/EXPENSE/STOCK_ADJUSTMENT/PARTY_SETTLEMENT/EQUITY
         val type = when (businessType) {
-            BusinessTransactionType.SALE, BusinessTransactionType.PAYMENT_MADE, BusinessTransactionType.EQUITY_WITHDRAWAL -> TransactionType.DEBIT
-            BusinessTransactionType.PURCHASE, BusinessTransactionType.PAYMENT_RECEIVED, BusinessTransactionType.EQUITY_CONTRIBUTION, BusinessTransactionType.PROFIT_DISTRIBUTION -> TransactionType.CREDIT
+            BusinessTransactionType.SALE, BusinessTransactionType.PAYMENT_MADE -> TransactionType.DEBIT
+            BusinessTransactionType.PURCHASE, BusinessTransactionType.PAYMENT_RECEIVED -> TransactionType.CREDIT
+            BusinessTransactionType.EQUITY_WITHDRAWAL -> TransactionType.EQUITY
+            BusinessTransactionType.EQUITY_CONTRIBUTION, BusinessTransactionType.PROFIT_DISTRIBUTION -> TransactionType.EQUITY
             BusinessTransactionType.TRANSFER -> TransactionType.TRANSFER
             BusinessTransactionType.EXPENSE -> TransactionType.EXPENSE
             BusinessTransactionType.STOCK_ADJUSTMENT -> TransactionType.STOCK_ADJUSTMENT
@@ -121,7 +123,8 @@ class AddTransactionUseCase @Inject constructor(
             } else if (oldTransaction.financialAccountId != null) {
                 val oldBalanceChange = when (oldTransaction.businessType) {
                     BusinessTransactionType.PAYMENT_RECEIVED, BusinessTransactionType.EQUITY_CONTRIBUTION -> oldTransaction.amount
-                    BusinessTransactionType.PAYMENT_MADE, BusinessTransactionType.EXPENSE, BusinessTransactionType.EQUITY_WITHDRAWAL -> oldTransaction.amount.negate()
+                    BusinessTransactionType.PAYMENT_MADE, BusinessTransactionType.EXPENSE, 
+                    BusinessTransactionType.EQUITY_WITHDRAWAL, BusinessTransactionType.PROFIT_DISTRIBUTION -> oldTransaction.amount.negate()
                     else -> BigDecimal.ZERO
                 }
                 if (oldBalanceChange != BigDecimal.ZERO) {
@@ -169,7 +172,8 @@ class AddTransactionUseCase @Inject constructor(
         } else if (financialAccountId != null) {
             val balanceChange = when (businessType) {
                 BusinessTransactionType.PAYMENT_RECEIVED, BusinessTransactionType.EQUITY_CONTRIBUTION -> amount
-                BusinessTransactionType.PAYMENT_MADE, BusinessTransactionType.EXPENSE, BusinessTransactionType.EQUITY_WITHDRAWAL -> amount.negate()
+                BusinessTransactionType.PAYMENT_MADE, BusinessTransactionType.EXPENSE, 
+                BusinessTransactionType.EQUITY_WITHDRAWAL, BusinessTransactionType.PROFIT_DISTRIBUTION -> amount.negate()
                 else -> BigDecimal.ZERO
             }
             if (balanceChange != BigDecimal.ZERO) {

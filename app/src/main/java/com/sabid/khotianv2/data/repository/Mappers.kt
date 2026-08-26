@@ -2,6 +2,7 @@ package com.sabid.khotianv2.data.repository
 
 import com.sabid.khotianv2.data.local.entity.*
 import com.sabid.khotianv2.domain.model.*
+import java.math.BigDecimal
 
 fun TransactionEntity.toDomain() = Transaction(
     id = id,
@@ -12,10 +13,10 @@ fun TransactionEntity.toDomain() = Transaction(
     quantity = quantity,
     baseQuantity = baseQuantity,
     rate = rate,
-    amount = amount,
+    amount = if (amount.compareTo(BigDecimal.ZERO) == 0 && netCost.compareTo(BigDecimal.ZERO) != 0) netCost else amount,
     freightAmount = freightAmount,
     freightType = freightType.toDomain(),
-    netCost = netCost,
+    netCost = if (netCost.compareTo(BigDecimal.ZERO) == 0 && amount.compareTo(BigDecimal.ZERO) != 0) amount else netCost,
     financialAccountId = financialAccountId,
     toFinancialAccountId = toFinancialAccountId,
     expenseCategoryId = expenseCategoryId,
@@ -38,7 +39,7 @@ fun Transaction.toEntity() = TransactionEntity(
     amount = amount,
     freightAmount = freightAmount,
     freightType = freightType.toEntity(),
-    netCost = netCost,
+    netCost = if (netCost.compareTo(BigDecimal.ZERO) == 0 && amount.compareTo(BigDecimal.ZERO) != 0) amount else netCost,
     financialAccountId = financialAccountId,
     toFinancialAccountId = toFinancialAccountId,
     expenseCategoryId = expenseCategoryId,

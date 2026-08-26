@@ -43,10 +43,27 @@ class BusinessRepositoryImpl @Inject constructor(
         combine(
             partyDao.getPartyByIdFlow(partyId),
             transactionDao.getTransactionsByParty(partyId)
-        ) { party, transactions ->
+        ) { party, entities ->
             val openingBalance = party?.openingBalance ?: BigDecimal.ZERO
-            transactions.fold(openingBalance) { acc, entity ->
-                if (entity.type == TransactionType.DEBIT) acc.add(entity.netCost) else acc.subtract(entity.netCost)
+            entities.map { it.toDomain() }.fold(openingBalance) { acc, transaction ->
+                when (transaction.type) {
+                    com.sabid.khotianv2.domain.model.TransactionType.DEBIT -> acc.add(transaction.netCost)
+                    com.sabid.khotianv2.domain.model.TransactionType.CREDIT -> acc.subtract(transaction.netCost)
+                    com.sabid.khotianv2.domain.model.TransactionType.PARTY_SETTLEMENT -> {
+                        if (transaction.partyId == partyId) acc.subtract(transaction.netCost)
+                        else if (transaction.toPartyId == partyId) acc.add(transaction.netCost)
+                        else acc
+                    }
+                    com.sabid.khotianv2.domain.model.TransactionType.EQUITY -> {
+                        when (transaction.businessType) {
+                            com.sabid.khotianv2.domain.model.BusinessTransactionType.EQUITY_WITHDRAWAL -> acc.add(transaction.netCost)
+                            com.sabid.khotianv2.domain.model.BusinessTransactionType.EQUITY_CONTRIBUTION, 
+                            com.sabid.khotianv2.domain.model.BusinessTransactionType.PROFIT_DISTRIBUTION -> acc.subtract(transaction.netCost)
+                            else -> acc
+                        }
+                    }
+                    else -> acc
+                }
             }
         }
 

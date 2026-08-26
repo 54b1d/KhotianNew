@@ -39,18 +39,26 @@ class TransactionRepositoryImpl @Inject constructor(
         combine(
             partyDao.getPartyByIdFlow(partyId),
             transactionDao.getTransactionsByParty(partyId)
-        ) { party, list ->
+        ) { party, entities ->
             val openingBalance = party?.openingBalance ?: BigDecimal.ZERO
-            list.fold(openingBalance) { acc, entity ->
-                when (entity.type) {
-                    TransactionType.DEBIT -> acc.add(entity.netCost)
-                    TransactionType.CREDIT -> acc.subtract(entity.netCost)
-                    TransactionType.PARTY_SETTLEMENT -> {
-                        if (entity.partyId == partyId) {
-                            acc.subtract(entity.netCost)
-                        } else if (entity.toPartyId == partyId) {
-                            acc.add(entity.netCost)
+            entities.map { it.toDomain() }.fold(openingBalance) { acc, transaction ->
+                when (transaction.type) {
+                    com.sabid.khotianv2.domain.model.TransactionType.DEBIT -> acc.add(transaction.netCost)
+                    com.sabid.khotianv2.domain.model.TransactionType.CREDIT -> acc.subtract(transaction.netCost)
+                    com.sabid.khotianv2.domain.model.TransactionType.PARTY_SETTLEMENT -> {
+                        if (transaction.partyId == partyId) {
+                            acc.subtract(transaction.netCost)
+                        } else if (transaction.toPartyId == partyId) {
+                            acc.add(transaction.netCost)
                         } else acc
+                    }
+                    com.sabid.khotianv2.domain.model.TransactionType.EQUITY -> {
+                        when (transaction.businessType) {
+                            com.sabid.khotianv2.domain.model.BusinessTransactionType.EQUITY_WITHDRAWAL -> acc.add(transaction.netCost)
+                            com.sabid.khotianv2.domain.model.BusinessTransactionType.EQUITY_CONTRIBUTION, 
+                            com.sabid.khotianv2.domain.model.BusinessTransactionType.PROFIT_DISTRIBUTION -> acc.subtract(transaction.netCost)
+                            else -> acc
+                        }
                     }
                     else -> acc
                 }

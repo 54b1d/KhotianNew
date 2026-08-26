@@ -62,6 +62,13 @@ class LedgerViewModel @AssistedInject constructor(
                         transaction.netCost
                     } else BigDecimal.ZERO
                 }
+                TransactionType.EQUITY -> {
+                    when (transaction.businessType) {
+                        BusinessTransactionType.EQUITY_WITHDRAWAL -> transaction.netCost
+                        BusinessTransactionType.EQUITY_CONTRIBUTION, BusinessTransactionType.PROFIT_DISTRIBUTION -> transaction.netCost.negate()
+                        else -> BigDecimal.ZERO
+                    }
+                }
                 else -> BigDecimal.ZERO
             }
             currentBalance = currentBalance.add(change)
@@ -75,6 +82,8 @@ class LedgerViewModel @AssistedInject constructor(
                 TransactionType.CREDIT -> true
                 TransactionType.DEBIT -> false
                 TransactionType.PARTY_SETTLEMENT -> transaction.partyId == partyId
+                TransactionType.EQUITY -> transaction.businessType == BusinessTransactionType.EQUITY_CONTRIBUTION || 
+                                          transaction.businessType == BusinessTransactionType.PROFIT_DISTRIBUTION
                 else -> false
             }
             
