@@ -24,7 +24,7 @@ sealed interface NavRoutes : NavKey {
     data class PartyLedger(val partyId: Long) : NavRoutes
 
     @Serializable
-    data object PartyEntry : NavRoutes
+    data class PartyEntry(val partyId: Long? = null) : NavRoutes
 
     @Serializable
     data class TransactionEntry(val partyId: Long? = null, val transactionId: Long? = null) : NavRoutes

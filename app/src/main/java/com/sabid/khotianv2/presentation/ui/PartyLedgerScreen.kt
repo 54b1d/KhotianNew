@@ -9,10 +9,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -37,12 +37,14 @@ import java.util.*
 fun PartyLedgerScreen(
     viewModel: LedgerViewModel,
     onBackClick: () -> Unit,
-    onTransactionClick: (Long) -> Unit
+    onTransactionClick: (Long) -> Unit,
+    onEditPartyClick: (Long) -> Unit
 ) {
     val transactions by viewModel.transactions.collectAsState()
     val totalBalance by viewModel.balance.collectAsState()
     val party by viewModel.party.collectAsState()
     val selectedMonth by viewModel.selectedMonth.collectAsState()
+    var expandedTransactionId by remember { mutableStateOf<Long?>(null) }
 
     Scaffold(
         topBar = {
@@ -65,6 +67,9 @@ fun PartyLedgerScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { party?.let { onEditPartyClick(it.id) } }) {
+                        Icon(Icons.Rounded.Edit, contentDescription = "Edit Party")
+                    }
                     Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(end = 16.dp)) {
                         Text(
                             "Total Bal: ৳ ${totalBalance.toPlainString()}",
@@ -132,7 +137,15 @@ fun PartyLedgerScreen(
                     contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
                     items(transactions) { item ->
-                        LedgerRow(item = item, onClick = { onTransactionClick(item.transaction.id) })
+                        val isExpanded = expandedTransactionId == item.transaction.id
+                        LedgerRow(
+                            item = item, 
+                            isExpanded = isExpanded,
+                            onClick = { 
+                                expandedTransactionId = if (isExpanded) null else item.transaction.id 
+                            },
+                            onEditClick = { onTransactionClick(item.transaction.id) }
+                        )
                         HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
                     }
                 }
@@ -172,86 +185,151 @@ private fun HeaderText(text: String, modifier: Modifier, textAlign: TextAlign = 
 private val dateFormat = SimpleDateFormat("dd/MM/yy", Locale.getDefault())
 
 @Composable
-private fun LedgerRow(item: TransactionItem, onClick: () -> Unit) {
+private fun LedgerRow(
+    item: TransactionItem,
+    isExpanded: Boolean,
+    onClick: () -> Unit,
+    onEditClick: () -> Unit
+) {
     val transaction = item.transaction
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 8.dp, vertical = 6.dp)
     ) {
-        Column(modifier = Modifier.weight(1.2f)) {
-            Text(
-                text = dateFormat.format(Date(transaction.timestamp)),
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp)
-            )
-            Text(
-                text = "By: ${transaction.createdBy}",
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.sp),
-                color = MaterialTheme.colorScheme.outline
-            )
-        }
-        val typeLabel = when (transaction.businessType) {
-            BusinessTransactionType.PURCHASE -> "Purc"
-            BusinessTransactionType.SALE -> "Sale"
-            BusinessTransactionType.PAYMENT_MADE -> "PayM"
-            BusinessTransactionType.PAYMENT_RECEIVED -> "PayR"
-            BusinessTransactionType.TRANSFER -> "Trns"
-            BusinessTransactionType.EXPENSE -> "Expn"
-            BusinessTransactionType.STOCK_ADJUSTMENT -> "Adj"
-            BusinessTransactionType.PARTY_SETTLEMENT -> "Setl"
-            BusinessTransactionType.EQUITY_CONTRIBUTION -> "EqtC"
-            BusinessTransactionType.EQUITY_WITHDRAWAL -> "EqtW"
-            BusinessTransactionType.PROFIT_DISTRIBUTION -> "Prof"
-        }
-        val typeColor = if (item.isCredit) Color(0xFF2E7D32) else Color(0xFFC62828)
-        Column(modifier = Modifier.weight(0.8f)) {
-            Text(
-                text = typeLabel,
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
-                color = typeColor
-            )
-            if (item.otherPartyName != null) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1.2f)) {
                 Text(
-                    text = item.otherPartyName,
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 7.sp),
-                    color = MaterialTheme.colorScheme.secondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    text = dateFormat.format(Date(transaction.timestamp)),
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp)
+                )
+                Text(
+                    text = "By: ${transaction.createdBy}",
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.sp),
+                    color = MaterialTheme.colorScheme.outline
                 )
             }
-        }
-        Column(modifier = Modifier.weight(1.2f), horizontalAlignment = Alignment.End) {
-            if (transaction.quantity != null) {
+            val typeLabel = when (transaction.businessType) {
+                BusinessTransactionType.PURCHASE -> "Purc"
+                BusinessTransactionType.SALE -> "Sale"
+                BusinessTransactionType.PAYMENT_MADE -> "PayM"
+                BusinessTransactionType.PAYMENT_RECEIVED -> "PayR"
+                BusinessTransactionType.TRANSFER -> "Trns"
+                BusinessTransactionType.EXPENSE -> "Expn"
+                BusinessTransactionType.STOCK_ADJUSTMENT -> "Adj"
+                BusinessTransactionType.PARTY_SETTLEMENT -> "Setl"
+                BusinessTransactionType.EQUITY_CONTRIBUTION -> "EqtC"
+                BusinessTransactionType.EQUITY_WITHDRAWAL -> "EqtW"
+                BusinessTransactionType.PROFIT_DISTRIBUTION -> "Prof"
+            }
+            val typeColor = if (item.isCredit) Color(0xFF2E7D32) else Color(0xFFC62828)
+            Column(modifier = Modifier.weight(0.8f)) {
                 Text(
-                    text = "${transaction.quantity.toPlainString()} ${item.unitSymbol ?: ""}",
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 9.sp),
+                    text = typeLabel,
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
+                    color = typeColor
+                )
+                if (item.otherPartyName != null) {
+                    Text(
+                        text = item.otherPartyName,
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 7.sp),
+                        color = MaterialTheme.colorScheme.secondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            Column(modifier = Modifier.weight(1.2f), horizontalAlignment = Alignment.End) {
+                if (transaction.quantity != null) {
+                    Text(
+                        text = "${transaction.quantity.toPlainString()} ${item.unitSymbol ?: ""}",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 9.sp),
+                        textAlign = TextAlign.End,
+                        maxLines = 1
+                    )
+                }
+                Text(
+                    text = transaction.amount.toPlainString(),
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
                     textAlign = TextAlign.End,
                     maxLines = 1
                 )
             }
             Text(
-                text = transaction.amount.toPlainString(),
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
+                text = transaction.netCost.toPlainString(),
+                modifier = Modifier.weight(1.2f),
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
                 textAlign = TextAlign.End,
                 maxLines = 1
             )
+            Text(
+                text = item.runningBalance.toPlainString(),
+                modifier = Modifier.weight(1.5f),
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp, fontWeight = FontWeight.ExtraBold),
+                textAlign = TextAlign.End,
+                color = if (item.runningBalance >= BigDecimal.ZERO) Color(0xFF2E7D32) else Color(0xFFC62828),
+                maxLines = 1
+            )
         }
-        Text(
-            text = transaction.netCost.toPlainString(),
-            modifier = Modifier.weight(1.2f),
-            style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
-            textAlign = TextAlign.End,
-            maxLines = 1
-        )
-        Text(
-            text = item.runningBalance.toPlainString(),
-            modifier = Modifier.weight(1.5f),
-            style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp, fontWeight = FontWeight.ExtraBold),
-            textAlign = TextAlign.End,
-            color = if (item.runningBalance >= BigDecimal.ZERO) Color(0xFF2E7D32) else Color(0xFFC62828),
-            maxLines = 1
-        )
+
+        if (isExpanded) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp, bottom = 4.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), MaterialTheme.shapes.small)
+                    .padding(8.dp)
+            ) {
+                if (!item.productName.isNullOrBlank()) {
+                    Text(
+                        text = "Product: ${item.productName}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                }
+                if (!transaction.note.isNullOrBlank()) {
+                    Text(
+                        text = "Note: ${transaction.note}",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                }
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Created by: ${transaction.createdBy}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                        Text(
+                            text = "Time: ${SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(transaction.timestamp))}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                    }
+                    
+                    Button(
+                        onClick = onEditClick,
+                        modifier = Modifier.height(32.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Icon(Icons.Rounded.EditNote, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Edit", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+            }
+        }
     }
 }

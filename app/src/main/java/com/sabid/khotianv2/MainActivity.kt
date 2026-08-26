@@ -180,7 +180,7 @@ class MainActivity : ComponentActivity() {
                                                 backStack.add(NavRoutes.PartyLedger(partyId))
                                             },
                                             onAddPartyClick = {
-                                                backStack.add(NavRoutes.PartyEntry)
+                                                backStack.add(NavRoutes.PartyEntry())
                                             }
                                         )
                                     }
@@ -197,7 +197,7 @@ class MainActivity : ComponentActivity() {
                                                 backStack.add(NavRoutes.FinancialAccountEntry)
                                             },
                                             onAddPartyClick = {
-                                                backStack.add(NavRoutes.PartyEntry)
+                                                backStack.add(NavRoutes.PartyEntry())
                                             },
                                             onAddTransactionClick = {
                                                 backStack.add(NavRoutes.TransactionEntry())
@@ -250,13 +250,21 @@ class MainActivity : ComponentActivity() {
                                             onBackClick = { backStack.removeLastOrNull() },
                                             onTransactionClick = { transactionId ->
                                                 backStack.add(NavRoutes.TransactionEntry(transactionId = transactionId))
+                                            },
+                                            onEditPartyClick = { partyId ->
+                                                backStack.add(NavRoutes.PartyEntry(partyId = partyId))
                                             }
                                         )
                                     }
                                     entry<NavRoutes.PartyEntry>(
                                         metadata = ListDetailSceneStrategy.extraPane()
-                                    ) {
-                                        val viewModel: PartyEntryViewModel = hiltViewModel()
+                                    ) { route ->
+                                        val viewModel: PartyEntryViewModel = hiltViewModel(
+                                            key = "party_entry_${route.partyId ?: 0}",
+                                            creationCallback = { factory: PartyEntryViewModel.Factory ->
+                                                factory.create(route.partyId)
+                                            }
+                                        )
                                         PartyEntryScreen(
                                             viewModel = viewModel,
                                             onSuccess = { backStack.removeLastOrNull() },
@@ -276,7 +284,7 @@ class MainActivity : ComponentActivity() {
                                             viewModel = viewModel,
                                             onSuccess = { backStack.removeLastOrNull() },
                                             onAddPartyClick = {
-                                                backStack.add(NavRoutes.PartyEntry)
+                                                backStack.add(NavRoutes.PartyEntry())
                                             },
                                             onAddProductClick = {
                                                 backStack.add(NavRoutes.ProductEntry)

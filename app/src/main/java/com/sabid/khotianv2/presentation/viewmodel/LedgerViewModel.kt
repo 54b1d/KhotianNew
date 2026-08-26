@@ -26,6 +26,7 @@ data class TransactionItem(
     val runningBalance: BigDecimal,
     val unitSymbol: String? = null,
     val otherPartyName: String? = null,
+    val productName: String? = null,
     val isCredit: Boolean = false
 )
 
@@ -35,6 +36,7 @@ class LedgerViewModel @AssistedInject constructor(
     private val getUnifiedLedgerUseCase: GetUnifiedLedgerUseCase,
     private val businessRepository: BusinessRepository,
     private val unitRepository: UnitRepository,
+    private val productRepository: com.sabid.khotianv2.domain.repository.ProductRepository,
     private val permissionManager: PermissionManager
 ) : ViewModel() {
 
@@ -48,8 +50,9 @@ class LedgerViewModel @AssistedInject constructor(
         getUnifiedLedgerUseCase(partyId),
         unitRepository.getAllUnits(),
         businessRepository.getParties(),
+        productRepository.getAllProducts(),
         _selectedMonth
-    ) { (openingBalance, list), units, parties, targetMonth ->
+    ) { (openingBalance, list), units, parties, products, targetMonth ->
         var currentBalance = openingBalance
         val allProcessed = list.sortedBy { it.timestamp }.map { transaction ->
             val change = when (transaction.type) {
@@ -87,7 +90,9 @@ class LedgerViewModel @AssistedInject constructor(
                 else -> false
             }
             
-            TransactionItem(transaction, currentBalance, unit?.symbol, otherPartyName, isCredit)
+            val productName = products.find { it.id == transaction.productId }?.name
+            
+            TransactionItem(transaction, currentBalance, unit?.symbol, otherPartyName, productName, isCredit)
         }
 
         allProcessed.filter { 

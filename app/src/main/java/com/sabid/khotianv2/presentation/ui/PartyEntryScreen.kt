@@ -28,7 +28,7 @@ fun PartyEntryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("New Party", style = MaterialTheme.typography.titleMedium) },
+                title = { Text(if (viewModel.isEditMode) "Edit Party" else "New Party", style = MaterialTheme.typography.titleMedium) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
@@ -45,7 +45,7 @@ fun PartyEntryScreen(
                     )
                 },
                 icon = { Icon(Icons.Rounded.Check, contentDescription = null) },
-                text = { Text("Save Party") },
+                text = { Text(if (viewModel.isEditMode) "Update Party" else "Save Party") },
                 expanded = !viewModel.isSubmitting
             )
         }
