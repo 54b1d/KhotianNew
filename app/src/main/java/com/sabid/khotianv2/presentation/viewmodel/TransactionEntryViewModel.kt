@@ -99,7 +99,9 @@ class TransactionEntryViewModel @AssistedInject constructor(
         get() = businessType == BusinessTransactionType.TRANSFER ||
                 businessType == BusinessTransactionType.PARTY_SETTLEMENT ||
                 businessType == BusinessTransactionType.PAYMENT_MADE ||
-                businessType == BusinessTransactionType.PAYMENT_RECEIVED
+                businessType == BusinessTransactionType.PAYMENT_RECEIVED ||
+                businessType == BusinessTransactionType.EQUITY_CONTRIBUTION ||
+                businessType == BusinessTransactionType.EQUITY_WITHDRAWAL
 
     fun onSourceAccountSelected(account: UnifiedAccount?) {
         sourceAccount = account
@@ -136,7 +138,8 @@ class TransactionEntryViewModel @AssistedInject constructor(
                 } else {
                     partyId = dest.id
                     financialAccountId = (src as UnifiedAccount.Financial).id
-                    businessType = BusinessTransactionType.PAYMENT_MADE
+                    val destParty = parties.value.find { it.id == dest.id }
+                    businessType = if (destParty?.type == "PARTNER") BusinessTransactionType.EQUITY_WITHDRAWAL else BusinessTransactionType.PAYMENT_MADE
                 }
             }
             is UnifiedAccount.Financial -> {
@@ -146,7 +149,8 @@ class TransactionEntryViewModel @AssistedInject constructor(
                 } else {
                     partyId = (src as UnifiedAccount.PartyAccount).id
                     financialAccountId = dest.id
-                    businessType = BusinessTransactionType.PAYMENT_RECEIVED
+                    val srcParty = parties.value.find { it.id == src.id }
+                    businessType = if (srcParty?.type == "PARTNER") BusinessTransactionType.EQUITY_CONTRIBUTION else BusinessTransactionType.PAYMENT_RECEIVED
                 }
             }
         }
@@ -210,11 +214,11 @@ class TransactionEntryViewModel @AssistedInject constructor(
                             sourceAccount = parties.value.find { it.id == tx.partyId }?.let { UnifiedAccount.PartyAccount(it) }
                             destinationAccount = parties.value.find { it.id == tx.toPartyId }?.let { UnifiedAccount.PartyAccount(it) }
                         }
-                        BusinessTransactionType.PAYMENT_MADE -> {
+                        BusinessTransactionType.PAYMENT_MADE, BusinessTransactionType.EQUITY_WITHDRAWAL -> {
                             sourceAccount = financialAccounts.value.find { it.id == tx.financialAccountId }?.let { UnifiedAccount.Financial(it) }
                             destinationAccount = parties.value.find { it.id == tx.partyId }?.let { UnifiedAccount.PartyAccount(it) }
                         }
-                        BusinessTransactionType.PAYMENT_RECEIVED -> {
+                        BusinessTransactionType.PAYMENT_RECEIVED, BusinessTransactionType.EQUITY_CONTRIBUTION -> {
                             sourceAccount = parties.value.find { it.id == tx.partyId }?.let { UnifiedAccount.PartyAccount(it) }
                             destinationAccount = financialAccounts.value.find { it.id == tx.financialAccountId }?.let { UnifiedAccount.Financial(it) }
                         }

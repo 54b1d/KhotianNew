@@ -313,6 +313,9 @@ private fun TransactionRow(item: TransactionItem, onClick: () -> Unit) {
                 BusinessTransactionType.PARTY_SETTLEMENT -> {
                     "Settlement: ${item.partyName} to ${item.toPartyName}"
                 }
+                BusinessTransactionType.EQUITY_CONTRIBUTION -> "Equity: Contribution to ${item.accountName}"
+                BusinessTransactionType.EQUITY_WITHDRAWAL -> "Equity: Withdrawal from ${item.accountName}"
+                BusinessTransactionType.PROFIT_DISTRIBUTION -> "Profit Distribution"
             }
             Text(
                 text = line2Text,
@@ -337,6 +340,9 @@ private fun TransactionTypeBadge(type: BusinessTransactionType) {
         BusinessTransactionType.EXPENSE -> MaterialTheme.colorScheme.errorContainer
         BusinessTransactionType.STOCK_ADJUSTMENT -> MaterialTheme.colorScheme.surfaceDim
         BusinessTransactionType.PARTY_SETTLEMENT -> MaterialTheme.colorScheme.primaryContainer
+        BusinessTransactionType.EQUITY_CONTRIBUTION -> MaterialTheme.colorScheme.primaryContainer
+        BusinessTransactionType.EQUITY_WITHDRAWAL -> MaterialTheme.colorScheme.surfaceVariant
+        BusinessTransactionType.PROFIT_DISTRIBUTION -> MaterialTheme.colorScheme.secondaryContainer
     }
     val contentColor = when (type) {
         BusinessTransactionType.PURCHASE -> MaterialTheme.colorScheme.onPrimaryContainer
@@ -347,6 +353,9 @@ private fun TransactionTypeBadge(type: BusinessTransactionType) {
         BusinessTransactionType.EXPENSE -> MaterialTheme.colorScheme.onErrorContainer
         BusinessTransactionType.STOCK_ADJUSTMENT -> MaterialTheme.colorScheme.onSurface
         BusinessTransactionType.PARTY_SETTLEMENT -> MaterialTheme.colorScheme.onPrimaryContainer
+        BusinessTransactionType.EQUITY_CONTRIBUTION -> MaterialTheme.colorScheme.onPrimaryContainer
+        BusinessTransactionType.EQUITY_WITHDRAWAL -> MaterialTheme.colorScheme.onSurfaceVariant
+        BusinessTransactionType.PROFIT_DISTRIBUTION -> MaterialTheme.colorScheme.onSecondaryContainer
     }
     val label = when (type) {
         BusinessTransactionType.PURCHASE -> "Purc"
@@ -357,6 +366,9 @@ private fun TransactionTypeBadge(type: BusinessTransactionType) {
         BusinessTransactionType.EXPENSE -> "Exps"
         BusinessTransactionType.STOCK_ADJUSTMENT -> "Stok"
         BusinessTransactionType.PARTY_SETTLEMENT -> "Setl"
+        BusinessTransactionType.EQUITY_CONTRIBUTION -> "EqtC"
+        BusinessTransactionType.EQUITY_WITHDRAWAL -> "EqtW"
+        BusinessTransactionType.PROFIT_DISTRIBUTION -> "Prft"
     }
 
     Surface(

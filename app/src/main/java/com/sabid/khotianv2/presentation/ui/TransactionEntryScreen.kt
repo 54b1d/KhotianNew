@@ -93,7 +93,8 @@ fun TransactionEntryScreen(
             val otherTypes = remember {
                 listOf(
                     BusinessTransactionType.TRANSFER,
-                    BusinessTransactionType.EXPENSE
+                    BusinessTransactionType.EXPENSE,
+                    BusinessTransactionType.PROFIT_DISTRIBUTION
                 )
             }
 
@@ -131,6 +132,7 @@ fun TransactionEntryScreen(
                     val label = when (type) {
                         BusinessTransactionType.TRANSFER -> "Transfer"
                         BusinessTransactionType.EXPENSE -> "Expense"
+                        BusinessTransactionType.PROFIT_DISTRIBUTION -> "Profit"
                         else -> ""
                     }
                     SegmentedButton(
@@ -264,9 +266,20 @@ fun TransactionEntryScreen(
                         expanded = showPartyMenu,
                         onDismissRequest = { showPartyMenu = false }
                     ) {
-                        parties.forEach { party ->
+                        val filteredParties = if (viewModel.businessType == BusinessTransactionType.PROFIT_DISTRIBUTION) {
+                            parties.filter { it.type == "PARTNER" }
+                        } else parties
+                        
+                        filteredParties.forEach { party ->
                             DropdownMenuItem(
-                                text = { Text(party.name, style = MaterialTheme.typography.bodySmall) },
+                                text = { 
+                                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                        Text(party.name, style = MaterialTheme.typography.bodySmall)
+                                        if (party.type == "PARTNER") {
+                                            Text("Partner", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+                                        }
+                                    }
+                                },
                                 onClick = {
                                     viewModel.partyId = party.id
                                     showPartyMenu = false

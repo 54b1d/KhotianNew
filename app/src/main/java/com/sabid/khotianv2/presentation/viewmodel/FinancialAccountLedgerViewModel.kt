@@ -34,8 +34,8 @@ class FinancialAccountLedgerViewModel @AssistedInject constructor(
             var currentBalance = openingBalance
             list.sortedBy { it.timestamp }.map { transaction ->
                 val change = when (transaction.businessType) {
-                    BusinessTransactionType.PAYMENT_RECEIVED -> transaction.amount
-                    BusinessTransactionType.PAYMENT_MADE, BusinessTransactionType.EXPENSE -> transaction.amount.negate()
+                    BusinessTransactionType.PAYMENT_RECEIVED, BusinessTransactionType.EQUITY_CONTRIBUTION -> transaction.amount
+                    BusinessTransactionType.PAYMENT_MADE, BusinessTransactionType.EXPENSE, BusinessTransactionType.EQUITY_WITHDRAWAL -> transaction.amount.negate()
                     BusinessTransactionType.TRANSFER -> {
                         if (transaction.toFinancialAccountId == accountId) transaction.amount
                         else transaction.amount.negate()

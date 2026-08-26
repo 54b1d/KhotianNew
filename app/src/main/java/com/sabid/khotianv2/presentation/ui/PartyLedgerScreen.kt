@@ -124,6 +124,9 @@ private fun LedgerRow(item: TransactionItem, onClick: () -> Unit) {
             BusinessTransactionType.EXPENSE -> "Expn"
             BusinessTransactionType.STOCK_ADJUSTMENT -> "Adj"
             BusinessTransactionType.PARTY_SETTLEMENT -> "Setl"
+            BusinessTransactionType.EQUITY_CONTRIBUTION -> "EqtC"
+            BusinessTransactionType.EQUITY_WITHDRAWAL -> "EqtW"
+            BusinessTransactionType.PROFIT_DISTRIBUTION -> "Prof"
         }
         val typeColor = if (item.isCredit) Color(0xFF2E7D32) else Color(0xFFC62828)
         Column(modifier = Modifier.weight(0.8f)) {

@@ -67,6 +67,17 @@ class AddTransactionUseCase @Inject constructor(
             if (partyId == toPartyId) {
                 return Result.failure(Exception("Source and destination parties must be different"))
             }
+        } else if (businessType == BusinessTransactionType.EQUITY_CONTRIBUTION || businessType == BusinessTransactionType.EQUITY_WITHDRAWAL) {
+            if (partyId == null) {
+                return Result.failure(Exception("Partner must be selected"))
+            }
+            if (financialAccountId == null) {
+                return Result.failure(Exception("Financial account must be selected"))
+            }
+        } else if (businessType == BusinessTransactionType.PROFIT_DISTRIBUTION) {
+            if (partyId == null) {
+                return Result.failure(Exception("Partner must be selected"))
+            }
         } else {
             if (partyId == null) {
                 return Result.failure(Exception("Party must be selected"))
@@ -80,8 +91,8 @@ class AddTransactionUseCase @Inject constructor(
 
         // Mapping Business Type to DEBIT/CREDIT/TRANSFER/EXPENSE/STOCK_ADJUSTMENT/PARTY_SETTLEMENT
         val type = when (businessType) {
-            BusinessTransactionType.SALE, BusinessTransactionType.PAYMENT_MADE -> TransactionType.DEBIT
-            BusinessTransactionType.PURCHASE, BusinessTransactionType.PAYMENT_RECEIVED -> TransactionType.CREDIT
+            BusinessTransactionType.SALE, BusinessTransactionType.PAYMENT_MADE, BusinessTransactionType.EQUITY_WITHDRAWAL -> TransactionType.DEBIT
+            BusinessTransactionType.PURCHASE, BusinessTransactionType.PAYMENT_RECEIVED, BusinessTransactionType.EQUITY_CONTRIBUTION, BusinessTransactionType.PROFIT_DISTRIBUTION -> TransactionType.CREDIT
             BusinessTransactionType.TRANSFER -> TransactionType.TRANSFER
             BusinessTransactionType.EXPENSE -> TransactionType.EXPENSE
             BusinessTransactionType.STOCK_ADJUSTMENT -> TransactionType.STOCK_ADJUSTMENT
@@ -109,8 +120,8 @@ class AddTransactionUseCase @Inject constructor(
                 }
             } else if (oldTransaction.financialAccountId != null) {
                 val oldBalanceChange = when (oldTransaction.businessType) {
-                    BusinessTransactionType.PAYMENT_RECEIVED -> oldTransaction.amount
-                    BusinessTransactionType.PAYMENT_MADE, BusinessTransactionType.EXPENSE -> oldTransaction.amount.negate()
+                    BusinessTransactionType.PAYMENT_RECEIVED, BusinessTransactionType.EQUITY_CONTRIBUTION -> oldTransaction.amount
+                    BusinessTransactionType.PAYMENT_MADE, BusinessTransactionType.EXPENSE, BusinessTransactionType.EQUITY_WITHDRAWAL -> oldTransaction.amount.negate()
                     else -> BigDecimal.ZERO
                 }
                 if (oldBalanceChange != BigDecimal.ZERO) {
@@ -157,8 +168,8 @@ class AddTransactionUseCase @Inject constructor(
             }
         } else if (financialAccountId != null) {
             val balanceChange = when (businessType) {
-                BusinessTransactionType.PAYMENT_RECEIVED -> amount
-                BusinessTransactionType.PAYMENT_MADE, BusinessTransactionType.EXPENSE -> amount.negate()
+                BusinessTransactionType.PAYMENT_RECEIVED, BusinessTransactionType.EQUITY_CONTRIBUTION -> amount
+                BusinessTransactionType.PAYMENT_MADE, BusinessTransactionType.EXPENSE, BusinessTransactionType.EQUITY_WITHDRAWAL -> amount.negate()
                 else -> BigDecimal.ZERO
             }
             if (balanceChange != BigDecimal.ZERO) {
