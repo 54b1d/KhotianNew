@@ -1,6 +1,0 @@
-- `[x]` Implement Bottom Navigation
-    - `[x]` Add `NavigationBar` to `MainActivity.kt`
-    - `[x]` Remove redundant navigation from `HomeScreen.kt`
-    - `[x]` Remove back button from `PartiesScreen.kt`
-    - `[x]` Redesign `DashboardScreen.kt` (Remove back button, move FABs to grid)
-    - `[x]` Verify build and navigation flow
