@@ -70,7 +70,8 @@ fun TransactionEntryScreen(
                 onClick = { viewModel.submitTransaction(onSuccess, {}) },
                 icon = { Icon(Icons.Rounded.Check, contentDescription = null) },
                 text = { Text(if (viewModel.isEditing) "Update" else "Save") },
-                expanded = !viewModel.isSubmitting
+                expanded = !viewModel.isSubmitting,
+                modifier = Modifier.imePadding()
             )
         }
     ) { padding ->

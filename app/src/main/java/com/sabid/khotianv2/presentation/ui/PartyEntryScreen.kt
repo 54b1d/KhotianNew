@@ -47,7 +47,8 @@ fun PartyEntryScreen(
                 },
                 icon = { Icon(Icons.Rounded.Check, contentDescription = null) },
                 text = { Text(if (viewModel.isEditMode) "Update Party" else "Save Party") },
-                expanded = !viewModel.isSubmitting
+                expanded = !viewModel.isSubmitting,
+                modifier = Modifier.imePadding()
             )
         }
     ) { padding ->

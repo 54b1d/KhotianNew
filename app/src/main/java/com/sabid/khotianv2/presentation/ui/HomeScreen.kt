@@ -43,7 +43,10 @@ fun HomeScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddTransactionClick) {
+            FloatingActionButton(
+                onClick = onAddTransactionClick,
+                modifier = Modifier.imePadding()
+            ) {
                 Icon(Icons.Rounded.Add, contentDescription = "Add Transaction")
             }
         }

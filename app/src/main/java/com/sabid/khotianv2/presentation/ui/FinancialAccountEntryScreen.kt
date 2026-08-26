@@ -56,7 +56,10 @@ fun FinancialAccountEntryScreen(
             )
         },
         floatingActionButton = {
-            LargeFloatingActionButton(onClick = { showAddDialog = true }) {
+            LargeFloatingActionButton(
+                onClick = { showAddDialog = true },
+                modifier = Modifier.imePadding()
+            ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Account")
             }
         }

@@ -48,7 +48,10 @@ fun DashboardScreen(
         },
         floatingActionButton = {
             if (permissions.hasPermission(PermissionType.CAN_EDIT_TRANSACTIONS)) {
-                FloatingActionButton(onClick = onAddTransactionClick) {
+                FloatingActionButton(
+                    onClick = onAddTransactionClick,
+                    modifier = Modifier.imePadding()
+                ) {
                     Icon(Icons.Rounded.Add, contentDescription = "Add Transaction")
                 }
             }

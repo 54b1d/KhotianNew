@@ -42,7 +42,10 @@ fun PartiesScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddPartyClick) {
+            FloatingActionButton(
+                onClick = onAddPartyClick,
+                modifier = Modifier.imePadding()
+            ) {
                 Icon(Icons.Rounded.Add, contentDescription = "Add Party")
             }
         }
