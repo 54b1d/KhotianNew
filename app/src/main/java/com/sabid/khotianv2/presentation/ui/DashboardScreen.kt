@@ -34,7 +34,8 @@ fun DashboardScreen(
     onUnitManagementClick: () -> Unit,
     onBackupClick: () -> Unit,
     onProfitLossClick: () -> Unit,
-    onStocktakeClick: () -> Unit
+    onStocktakeClick: () -> Unit,
+    onUserManagementClick: () -> Unit
 ) {
     val productStocks by viewModel.productStocks.collectAsState()
     val financialAccounts by viewModel.financialAccounts.collectAsState()
@@ -126,6 +127,15 @@ fun DashboardScreen(
                         icon = Icons.Rounded.Settings,
                         onClick = onUnitManagementClick
                     )
+                }
+                if (permissions.hasPermission(PermissionType.CAN_MANAGE_USERS)) {
+                    item {
+                        ActionCard(
+                            title = "Manage Users",
+                            icon = Icons.Rounded.Group,
+                            onClick = onUserManagementClick
+                        )
+                    }
                 }
             }
 

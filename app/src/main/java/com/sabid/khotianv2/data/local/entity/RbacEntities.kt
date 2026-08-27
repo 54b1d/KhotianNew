@@ -1,9 +1,12 @@
 package com.sabid.khotianv2.data.local.entity
 
+import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
+import androidx.room.Junction
 import androidx.room.PrimaryKey
+import androidx.room.Relation
 import com.sabid.khotianv2.domain.model.PermissionType
 
 @Entity(tableName = "roles")
@@ -59,4 +62,27 @@ data class PermissionEntity(
 data class RolePermissionCrossRef(
     val roleId: Long,
     val flag: PermissionType
+)
+
+data class RoleWithPermissions(
+    @Embedded val role: RoleEntity,
+    @Relation(
+        parentColumn = "id",
+        entityColumn = "flag",
+        associateBy = Junction(
+            value = RolePermissionCrossRef::class,
+            parentColumn = "roleId",
+            entityColumn = "flag"
+        )
+    )
+    val permissions: List<PermissionEntity>
+)
+
+data class UserWithRole(
+    @Embedded val user: UserEntity,
+    @Relation(
+        parentColumn = "roleId",
+        entityColumn = "id"
+    )
+    val role: RoleEntity?
 )

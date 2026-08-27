@@ -52,4 +52,6 @@ sealed interface NavRoutes : NavKey {
 
     @Serializable
     data object Stocktake : NavRoutes
+    @Serializable
+    data object UserManagement : NavRoutes
 }

@@ -4,12 +4,29 @@ import androidx.room.*
 import com.sabid.khotianv2.data.local.entity.RoleEntity
 import com.sabid.khotianv2.data.local.entity.UserEntity
 import com.sabid.khotianv2.domain.model.PermissionType
+import com.sabid.khotianv2.data.local.entity.RolePermissionCrossRef
+import com.sabid.khotianv2.data.local.entity.RoleWithPermissions
+import com.sabid.khotianv2.data.local.entity.UserWithRole
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface UserDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUser(user: UserEntity): Long
+
+    @Transaction
+    @Query("SELECT * FROM users")
+    fun getAllUsersWithRoles(): Flow<List<UserWithRole>>
+
+    @Query("DELETE FROM users WHERE id = :userId")
+    suspend fun deleteUser(userId: Long)
+
+    @Query("DELETE FROM roles WHERE id = :roleId")
+    suspend fun deleteRole(roleId: Long)
+
+    @Transaction
+    @Query("SELECT * FROM roles")
+    fun getRolesWithPermissions(): Flow<List<RoleWithPermissions>>
 
     @Query("SELECT COUNT(*) FROM users")
     suspend fun getUserCount(): Int
@@ -42,12 +59,12 @@ interface UserDao {
     suspend fun clearRolePermissions(roleId: Long)
 
     @Insert
-    suspend fun insertRolePermissions(crossRefs: List<com.sabid.khotianv2.data.local.entity.RolePermissionCrossRef>)
+    suspend fun insertRolePermissions(crossRefs: List<RolePermissionCrossRef>)
     
     @Transaction
     suspend fun updateRolePermissions(roleId: Long, permissions: List<PermissionType>) {
         clearRolePermissions(roleId)
-        val refs = permissions.map { com.sabid.khotianv2.data.local.entity.RolePermissionCrossRef(roleId, it) }
+        val refs = permissions.map { RolePermissionCrossRef(roleId, it) }
         insertRolePermissions(refs)
     }
 }

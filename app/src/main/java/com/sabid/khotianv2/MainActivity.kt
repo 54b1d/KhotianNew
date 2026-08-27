@@ -212,7 +212,19 @@ class MainActivity : ComponentActivity() {
                                             },
                                             onStocktakeClick = {
                                                 backStack.add(NavRoutes.Stocktake)
+                                            },
+                                            onUserManagementClick = {
+                                                backStack.add(NavRoutes.UserManagement)
                                             }
+                                        )
+                                    }
+                                    entry<NavRoutes.UserManagement>(
+                                        metadata = ListDetailSceneStrategy.extraPane()
+                                    ) {
+                                        val viewModel: UserManagementViewModel = hiltViewModel()
+                                        UserManagementScreen(
+                                            viewModel = viewModel,
+                                            onBackClick = { backStack.removeLastOrNull() }
                                         )
                                     }
                                     entry<NavRoutes.ProfitLoss>(
