@@ -4,10 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sabid.khotianv2.domain.manager.PermissionManager
 import com.sabid.khotianv2.domain.model.BusinessTransactionType
+import com.sabid.khotianv2.domain.model.CommaStyle
 import com.sabid.khotianv2.domain.model.FinancialAccount
 import com.sabid.khotianv2.domain.model.UserPermissions
 import com.sabid.khotianv2.domain.repository.FinancialAccountRepository
 import com.sabid.khotianv2.domain.repository.ProductRepository
+import com.sabid.khotianv2.domain.repository.SettingsRepository
 import com.sabid.khotianv2.domain.usecase.GetAccountLedgerUseCase
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
@@ -26,8 +28,12 @@ class FinancialAccountLedgerViewModel @AssistedInject constructor(
     private val getAccountLedgerUseCase: GetAccountLedgerUseCase,
     private val accountRepository: FinancialAccountRepository,
     private val productRepository: ProductRepository,
-    private val permissionManager: PermissionManager
+    private val permissionManager: PermissionManager,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
+
+    val commaStyle: StateFlow<CommaStyle> = settingsRepository.getCommaStyle()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), CommaStyle.BD)
 
     val accounts: StateFlow<List<FinancialAccount>> = accountRepository.getAllAccounts()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())

@@ -88,4 +88,10 @@ abstract class RepositoryModule {
     abstract fun bindStocktakeRepository(
         stocktakeRepositoryImpl: StocktakeRepositoryImpl
     ): StocktakeRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSettingsRepository(
+        settingsRepositoryImpl: SettingsRepositoryImpl
+    ): SettingsRepository
 }

@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.sabid.khotianv2.domain.manager.PermissionManager
 import com.sabid.khotianv2.domain.model.*
 import com.sabid.khotianv2.domain.repository.BusinessRepository
+import com.sabid.khotianv2.domain.repository.SettingsRepository
 import com.sabid.khotianv2.domain.repository.UnitRepository
 import com.sabid.khotianv2.domain.usecase.GetUnifiedLedgerUseCase
 import dagger.assisted.Assisted
@@ -37,11 +38,15 @@ class LedgerViewModel @AssistedInject constructor(
     private val businessRepository: BusinessRepository,
     private val unitRepository: UnitRepository,
     private val productRepository: com.sabid.khotianv2.domain.repository.ProductRepository,
-    private val permissionManager: PermissionManager
+    private val permissionManager: PermissionManager,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
     private val _selectedMonth = MutableStateFlow(YearMonth.now())
     val selectedMonth: StateFlow<YearMonth> = _selectedMonth.asStateFlow()
+
+    val commaStyle: StateFlow<CommaStyle> = settingsRepository.getCommaStyle()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), CommaStyle.BD)
 
     val party: StateFlow<Party?> = businessRepository.getParty(partyId)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)

@@ -17,10 +17,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.sabid.khotianv2.domain.model.Party
-import com.sabid.khotianv2.domain.model.PermissionType
+import com.sabid.khotianv2.domain.model.*
 import com.sabid.khotianv2.domain.repository.ProductStock
 import com.sabid.khotianv2.presentation.viewmodel.DashboardViewModel
+import com.sabid.khotianv2.util.CurrencyUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,11 +35,13 @@ fun DashboardScreen(
     onBackupClick: () -> Unit,
     onProfitLossClick: () -> Unit,
     onStocktakeClick: () -> Unit,
-    onUserManagementClick: () -> Unit
+    onUserManagementClick: () -> Unit,
+    onSettingsClick: () -> Unit
 ) {
     val productStocks by viewModel.productStocks.collectAsState()
     val financialAccounts by viewModel.financialAccounts.collectAsState()
     val permissions by viewModel.userPermissions.collectAsState()
+    val commaStyle by viewModel.commaStyle.collectAsState()
 
     Scaffold(
         topBar = {
@@ -123,9 +125,16 @@ fun DashboardScreen(
                 }
                 item {
                     ActionCard(
+                        title = "Units",
+                        icon = Icons.Rounded.SquareFoot,
+                        onClick = onUnitManagementClick
+                    )
+                }
+                item {
+                    ActionCard(
                         title = "Settings",
                         icon = Icons.Rounded.Settings,
-                        onClick = onUnitManagementClick
+                        onClick = onSettingsClick
                     )
                 }
                 if (permissions.hasPermission(PermissionType.CAN_MANAGE_USERS)) {
@@ -148,7 +157,7 @@ fun DashboardScreen(
                     )
                 }
                 items(financialAccounts) { account ->
-                    AccountCard(account = account, onClick = { onFinancialAccountClick(account.id) })
+                    AccountCard(account = account, commaStyle = commaStyle, onClick = { onFinancialAccountClick(account.id) })
                 }
             }
 
@@ -161,7 +170,7 @@ fun DashboardScreen(
                     )
                 }
                 items(productStocks) { stock ->
-                    StockCard(stock = stock)
+                    StockCard(stock = stock, commaStyle = commaStyle)
                 }
             }
         }
@@ -207,7 +216,7 @@ private fun ActionCard(
 }
 
 @Composable
-private fun AccountCard(account: com.sabid.khotianv2.domain.model.FinancialAccount, onClick: () -> Unit) {
+private fun AccountCard(account: FinancialAccount, commaStyle: CommaStyle, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -230,7 +239,7 @@ private fun AccountCard(account: com.sabid.khotianv2.domain.model.FinancialAccou
                     modifier = Modifier.weight(1f)
                 )
                 Icon(
-                    if (account.type == com.sabid.khotianv2.domain.model.FinancialAccountType.CASH) 
+                    if (account.type == FinancialAccountType.CASH) 
                         Icons.Rounded.Payments else Icons.Rounded.AccountBalance,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
@@ -239,7 +248,7 @@ private fun AccountCard(account: com.sabid.khotianv2.domain.model.FinancialAccou
             }
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = account.currentBalance.toPlainString(),
+                text = CurrencyUtils.formatAmount(account.currentBalance, commaStyle),
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onTertiaryContainer
@@ -249,7 +258,7 @@ private fun AccountCard(account: com.sabid.khotianv2.domain.model.FinancialAccou
 }
 
 @Composable
-private fun StockCard(stock: ProductStock) {
+private fun StockCard(stock: ProductStock, commaStyle: CommaStyle) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -264,9 +273,9 @@ private fun StockCard(stock: ProductStock) {
             )
             Spacer(modifier = Modifier.height(4.dp))
             val stockText = if (stock.stockInDefaultUnit != null) {
-                "${stock.stockInDefaultUnit.toPlainString()} ${stock.defaultUnitSymbol ?: ""}"
+                "${stock.stockInDefaultUnit.stripTrailingZeros().toPlainString()} ${stock.defaultUnitSymbol ?: ""}"
             } else {
-                "${stock.baseStock.toPlainString()} kg"
+                "${stock.baseStock.stripTrailingZeros().toPlainString()} kg"
             }
             Text(
                 text = stockText,

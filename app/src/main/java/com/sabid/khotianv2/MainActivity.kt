@@ -163,6 +163,9 @@ class MainActivity : ComponentActivity() {
                                             },
                                             onAccountClick = { accountId ->
                                                 backStack.add(NavRoutes.FinancialAccountLedger(accountId))
+                                            },
+                                            onSettingsClick = {
+                                                backStack.add(NavRoutes.Settings)
                                             }
                                         )
                                     }
@@ -215,6 +218,9 @@ class MainActivity : ComponentActivity() {
                                             },
                                             onUserManagementClick = {
                                                 backStack.add(NavRoutes.UserManagement)
+                                            },
+                                            onSettingsClick = {
+                                                backStack.add(NavRoutes.Settings)
                                             }
                                         )
                                     }
@@ -223,6 +229,15 @@ class MainActivity : ComponentActivity() {
                                     ) {
                                         val viewModel: UserManagementViewModel = hiltViewModel()
                                         UserManagementScreen(
+                                            viewModel = viewModel,
+                                            onBackClick = { backStack.removeLastOrNull() }
+                                        )
+                                    }
+                                    entry<NavRoutes.Settings>(
+                                        metadata = ListDetailSceneStrategy.extraPane()
+                                    ) {
+                                        val viewModel: SettingsViewModel = hiltViewModel()
+                                        SettingsScreen(
                                             viewModel = viewModel,
                                             onBackClick = { backStack.removeLastOrNull() }
                                         )

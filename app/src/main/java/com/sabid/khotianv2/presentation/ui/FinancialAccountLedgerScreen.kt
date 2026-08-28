@@ -15,10 +15,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.sabid.khotianv2.domain.model.BusinessTransactionType
-import com.sabid.khotianv2.domain.model.FinancialAccount
+import com.sabid.khotianv2.domain.model.*
 import com.sabid.khotianv2.presentation.viewmodel.FinancialAccountLedgerViewModel
 import com.sabid.khotianv2.presentation.viewmodel.TransactionItem
+import com.sabid.khotianv2.util.CurrencyUtils
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -32,6 +32,7 @@ fun FinancialAccountLedgerScreen(
     val transactions by viewModel.transactions.collectAsState()
     val account by viewModel.account.collectAsState()
     val allAccounts by viewModel.accounts.collectAsState()
+    val commaStyle by viewModel.commaStyle.collectAsState()
     var expandedTransactionId by remember { mutableStateOf<Long?>(null) }
 
     Scaffold(
@@ -42,7 +43,7 @@ fun FinancialAccountLedgerScreen(
                         Text(account?.name ?: "Account Ledger", style = MaterialTheme.typography.titleMedium)
                         if (account != null) {
                             Text(
-                                "Balance: ${account?.currentBalance}",
+                                "Balance: ${CurrencyUtils.formatAmount(account?.currentBalance, commaStyle)}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -71,6 +72,7 @@ fun FinancialAccountLedgerScreen(
                     currentAccountId = account?.id ?: 0L, 
                     allAccounts = allAccounts, 
                     isExpanded = isExpanded,
+                    commaStyle = commaStyle,
                     onClick = { 
                         expandedTransactionId = if (isExpanded) null else item.transaction.id 
                     },
@@ -87,6 +89,7 @@ fun AccountTransactionRow(
     currentAccountId: Long,
     allAccounts: List<FinancialAccount>,
     isExpanded: Boolean,
+    commaStyle: CommaStyle,
     onClick: () -> Unit,
     onEditClick: () -> Unit
 ) {
@@ -155,13 +158,13 @@ fun AccountTransactionRow(
                     
                     Text(
                         text = if (isPositive) 
-                            "+${transaction.amount}" else "-${transaction.amount}",
+                            "+${CurrencyUtils.formatAmount(transaction.amount, commaStyle)}" else "-${CurrencyUtils.formatAmount(transaction.amount, commaStyle)}",
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold,
                         color = color
                     )
                     Text(
-                        text = "Bal: ${item.runningBalance}",
+                        text = "Bal: ${CurrencyUtils.formatAmount(item.runningBalance, commaStyle)}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline
                     )

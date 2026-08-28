@@ -2,7 +2,9 @@ package com.sabid.khotianv2.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sabid.khotianv2.domain.model.CommaStyle
 import com.sabid.khotianv2.domain.model.HomeData
+import com.sabid.khotianv2.domain.repository.SettingsRepository
 import com.sabid.khotianv2.domain.usecase.GetHomeDataUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -12,11 +14,15 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val getHomeDataUseCase: GetHomeDataUseCase
+    private val getHomeDataUseCase: GetHomeDataUseCase,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
     private val _selectedDate = MutableStateFlow(LocalDate.now())
     val selectedDate: StateFlow<LocalDate> = _selectedDate.asStateFlow()
+
+    val commaStyle: StateFlow<CommaStyle> = settingsRepository.getCommaStyle()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), CommaStyle.BD)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val homeData: StateFlow<HomeData?> = _selectedDate

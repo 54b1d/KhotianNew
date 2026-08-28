@@ -22,12 +22,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sabid.khotianv2.domain.model.BusinessTransactionType
-import com.sabid.khotianv2.domain.model.Party
-import com.sabid.khotianv2.domain.model.Transaction
-import com.sabid.khotianv2.domain.model.TransactionType
+import com.sabid.khotianv2.domain.model.*
 import com.sabid.khotianv2.presentation.viewmodel.LedgerViewModel
 import com.sabid.khotianv2.presentation.viewmodel.TransactionItem
+import com.sabid.khotianv2.util.CurrencyUtils
 import java.math.BigDecimal
 import java.text.SimpleDateFormat
 import java.time.format.DateTimeFormatter
@@ -45,6 +43,7 @@ fun PartyLedgerScreen(
     val totalBalance by viewModel.balance.collectAsState()
     val party by viewModel.party.collectAsState()
     val selectedMonth by viewModel.selectedMonth.collectAsState()
+    val commaStyle by viewModel.commaStyle.collectAsState()
     var expandedTransactionId by remember { mutableStateOf<Long?>(null) }
 
     Scaffold(
@@ -73,7 +72,7 @@ fun PartyLedgerScreen(
                     }
                     Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(end = 16.dp)) {
                         Text(
-                            "Total Bal: ৳ ${totalBalance.toPlainString()}",
+                            "Total Bal: ৳ ${CurrencyUtils.formatAmount(totalBalance, commaStyle)}",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = if (totalBalance >= BigDecimal.ZERO) Color(0xFF2E7D32) else Color(0xFFC62828)
@@ -142,6 +141,7 @@ fun PartyLedgerScreen(
                         LedgerRow(
                             item = item, 
                             isExpanded = isExpanded,
+                            commaStyle = commaStyle,
                             onClick = { 
                                 expandedTransactionId = if (isExpanded) null else item.transaction.id 
                             },
@@ -188,6 +188,7 @@ private fun HeaderText(text: String, modifier: Modifier, textAlign: TextAlign = 
 private fun LedgerRow(
     item: TransactionItem,
     isExpanded: Boolean,
+    commaStyle: CommaStyle,
     onClick: () -> Unit,
     onEditClick: () -> Unit
 ) {
@@ -264,21 +265,21 @@ private fun LedgerRow(
             Column(modifier = Modifier.weight(1.3f), horizontalAlignment = Alignment.End) {
                 if (transaction.quantity != null) {
                     Text(
-                        text = "${transaction.quantity.toPlainString()} ${item.unitSymbol ?: ""}",
+                        text = "${transaction.quantity.stripTrailingZeros().toPlainString()} ${item.unitSymbol ?: ""}",
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 9.sp),
                         textAlign = TextAlign.End,
                         maxLines = 1
                     )
                 }
                 Text(
-                    text = transaction.amount.toPlainString(),
+                    text = CurrencyUtils.formatAmount(transaction.amount, commaStyle),
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
                     textAlign = TextAlign.End,
                     maxLines = 1
                 )
             }
             Text(
-                text = item.runningBalance.toPlainString(),
+                text = CurrencyUtils.formatAmount(item.runningBalance, commaStyle),
                 modifier = Modifier.weight(1.5f),
                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp, fontWeight = FontWeight.ExtraBold),
                 textAlign = TextAlign.End,

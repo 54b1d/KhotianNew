@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sabid.khotianv2.domain.model.*
 import com.sabid.khotianv2.presentation.viewmodel.HomeViewModel
+import com.sabid.khotianv2.util.CurrencyUtils
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -28,10 +29,12 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     onAddTransactionClick: () -> Unit,
     onTransactionClick: (Transaction) -> Unit,
-    onAccountClick: (Long) -> Unit
+    onAccountClick: (Long) -> Unit,
+    onSettingsClick: () -> Unit
 ) {
     val selectedDate by viewModel.selectedDate.collectAsState()
     val homeData by viewModel.homeData.collectAsState()
+    val commaStyle by viewModel.commaStyle.collectAsState()
     var showDatePicker by remember { mutableStateOf(false) }
     var showCashBottomSheet by remember { mutableStateOf(false) }
     var showBankBottomSheet by remember { mutableStateOf(false) }
@@ -39,7 +42,12 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Daily Operations", style = MaterialTheme.typography.titleMedium) }
+                title = { Text("Daily Operations", style = MaterialTheme.typography.titleMedium) },
+                actions = {
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(Icons.Rounded.Settings, contentDescription = "Settings")
+                    }
+                }
             )
         },
         floatingActionButton = {
@@ -68,6 +76,7 @@ fun HomeScreen(
             FinancialSummaryRow(
                 cashTotal = homeData?.cashTotal ?: java.math.BigDecimal.ZERO,
                 bankTotal = homeData?.bankTotal ?: java.math.BigDecimal.ZERO,
+                commaStyle = commaStyle,
                 onCashClick = { showCashBottomSheet = true },
                 onBankClick = { showBankBottomSheet = true }
             )
@@ -77,6 +86,7 @@ fun HomeScreen(
             // Transaction List
             TransactionList(
                 transactions = homeData?.transactions ?: emptyList(),
+                commaStyle = commaStyle,
                 onTransactionClick = { onTransactionClick(it.transaction) }
             )
         }
@@ -115,6 +125,7 @@ fun HomeScreen(
         AccountListBottomSheet(
             title = "Cash Accounts",
             accounts = homeData?.cashAccounts ?: emptyList(),
+            commaStyle = commaStyle,
             onDismiss = { showCashBottomSheet = false },
             onAccountClick = {
                 onAccountClick(it)
@@ -127,6 +138,7 @@ fun HomeScreen(
         AccountListBottomSheet(
             title = "Bank Accounts",
             accounts = homeData?.bankAccounts ?: emptyList(),
+            commaStyle = commaStyle,
             onDismiss = { showBankBottomSheet = false },
             onAccountClick = {
                 onAccountClick(it)
@@ -188,6 +200,7 @@ private fun DateNavigationHeader(
 private fun FinancialSummaryRow(
     cashTotal: java.math.BigDecimal,
     bankTotal: java.math.BigDecimal,
+    commaStyle: CommaStyle,
     onCashClick: () -> Unit,
     onBankClick: () -> Unit
 ) {
@@ -199,13 +212,13 @@ private fun FinancialSummaryRow(
     ) {
         AssistChip(
             onClick = onCashClick,
-            label = { Text("Cash: ${cashTotal.toPlainString()}") },
+            label = { Text("Cash: ${CurrencyUtils.formatAmount(cashTotal, commaStyle)}") },
             leadingIcon = { Icon(Icons.Rounded.Payments, null, modifier = Modifier.size(18.dp)) },
             modifier = Modifier.weight(1f)
         )
         AssistChip(
             onClick = onBankClick,
-            label = { Text("Bank: ${bankTotal.toPlainString()}") },
+            label = { Text("Bank: ${CurrencyUtils.formatAmount(bankTotal, commaStyle)}") },
             leadingIcon = { Icon(Icons.Rounded.AccountBalance, null, modifier = Modifier.size(18.dp)) },
             modifier = Modifier.weight(1f)
         )
@@ -215,6 +228,7 @@ private fun FinancialSummaryRow(
 @Composable
 private fun TransactionList(
     transactions: List<TransactionItem>,
+    commaStyle: CommaStyle,
     onTransactionClick: (TransactionItem) -> Unit
 ) {
     if (transactions.isEmpty()) {
@@ -228,14 +242,14 @@ private fun TransactionList(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             items(transactions) { item ->
-                TransactionRow(item = item, onClick = { onTransactionClick(item) })
+                TransactionRow(item = item, commaStyle = commaStyle, onClick = { onTransactionClick(item) })
             }
         }
     }
 }
 
 @Composable
-private fun TransactionRow(item: TransactionItem, onClick: () -> Unit) {
+private fun TransactionRow(item: TransactionItem, commaStyle: CommaStyle, onClick: () -> Unit) {
     val transaction = item.transaction
     val displayName = item.partyName ?: item.accountName ?: item.categoryName ?: "General"
 
@@ -289,7 +303,7 @@ private fun TransactionRow(item: TransactionItem, onClick: () -> Unit) {
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = transaction.amount.toPlainString(),
+                    text = CurrencyUtils.formatAmount(transaction.amount, commaStyle),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -394,6 +408,7 @@ private fun TransactionTypeBadge(type: BusinessTransactionType) {
 private fun AccountListBottomSheet(
     title: String,
     accounts: List<FinancialAccount>,
+    commaStyle: CommaStyle,
     onDismiss: () -> Unit,
     onAccountClick: (Long) -> Unit
 ) {
@@ -415,7 +430,7 @@ private fun AccountListBottomSheet(
                         headlineContent = { Text(account.name) },
                         trailingContent = {
                             Text(
-                                account.currentBalance.toPlainString(),
+                                CurrencyUtils.formatAmount(account.currentBalance, commaStyle),
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold
                             )
