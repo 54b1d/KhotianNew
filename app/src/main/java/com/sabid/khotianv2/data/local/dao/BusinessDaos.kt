@@ -134,6 +134,12 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE id = :id")
     suspend fun getTransactionById(id: Long): TransactionEntity?
 
+    @Query("SELECT * FROM transactions WHERE parentTransactionId = :parentId")
+    suspend fun getChildTransactions(parentId: Long): List<TransactionEntity>
+
+    @Query("DELETE FROM transactions WHERE parentTransactionId = :parentId")
+    suspend fun deleteChildTransactions(parentId: Long)
+
     @Update
     suspend fun updateTransaction(transaction: TransactionEntity)
 

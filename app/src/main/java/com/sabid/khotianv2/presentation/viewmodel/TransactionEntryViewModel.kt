@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
+import java.math.RoundingMode
 
 sealed class UnifiedAccount {
     data class PartyAccount(val party: Party) : UnifiedAccount()
@@ -41,6 +42,14 @@ sealed class UnifiedAccount {
             is Financial -> account.name
         }
 }
+
+data class CostRow(
+    val type: LinkedTransactionType = LinkedTransactionType.FREIGHT,
+    val amount: String = "0",
+    val sourceAccount: UnifiedAccount? = null,
+    val destinationAccount: UnifiedAccount? = null,
+    val note: String = ""
+)
 
 @HiltViewModel(assistedFactory = TransactionEntryViewModel.Factory::class)
 class TransactionEntryViewModel @AssistedInject constructor(
@@ -87,10 +96,69 @@ class TransactionEntryViewModel @AssistedInject constructor(
     var quantity by mutableStateOf("0")
     var rate by mutableStateOf("0")
     var amountText by mutableStateOf("0")
-    var freightAmountText by mutableStateOf("0")
-    var freightType by mutableStateOf(FreightType.BORN_BY_SELLER)
     var businessType by mutableStateOf(BusinessTransactionType.SALE)
     var note by mutableStateOf("")
+
+    var showErrors by mutableStateOf(false)
+
+    fun onQuantityChange(value: String) {
+        quantity = value
+        val q = try { BigDecimal(value) } catch (e: Exception) { BigDecimal.ZERO }
+        val r = try { BigDecimal(rate) } catch (e: Exception) { BigDecimal.ZERO }
+        val a = try { BigDecimal(amountText) } catch (e: Exception) { BigDecimal.ZERO }
+
+        if (q.compareTo(BigDecimal.ZERO) != 0) {
+            if (r.compareTo(BigDecimal.ZERO) != 0) {
+                amountText = q.multiply(r).setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()
+            } else if (a.compareTo(BigDecimal.ZERO) != 0) {
+                rate = a.divide(q, 2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()
+            }
+        }
+    }
+
+    fun onRateChange(value: String) {
+        rate = value
+        val q = try { BigDecimal(quantity) } catch (e: Exception) { BigDecimal.ZERO }
+        val r = try { BigDecimal(value) } catch (e: Exception) { BigDecimal.ZERO }
+        val a = try { BigDecimal(amountText) } catch (e: Exception) { BigDecimal.ZERO }
+
+        if (r.compareTo(BigDecimal.ZERO) != 0) {
+            if (q.compareTo(BigDecimal.ZERO) != 0) {
+                amountText = q.multiply(r).setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()
+            } else if (a.compareTo(BigDecimal.ZERO) != 0) {
+                quantity = a.divide(r, 2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()
+            }
+        }
+    }
+
+    fun onAmountInputChange(value: String) {
+        amountText = value
+        val q = try { BigDecimal(quantity) } catch (e: Exception) { BigDecimal.ZERO }
+        val r = try { BigDecimal(rate) } catch (e: Exception) { BigDecimal.ZERO }
+        val a = try { BigDecimal(value) } catch (e: Exception) { BigDecimal.ZERO }
+
+        if (a.compareTo(BigDecimal.ZERO) != 0) {
+            if (q.compareTo(BigDecimal.ZERO) != 0) {
+                rate = a.divide(q, 2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()
+            } else if (r.compareTo(BigDecimal.ZERO) != 0) {
+                quantity = a.divide(r, 2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()
+            }
+        }
+    }
+
+    var additionalCosts by mutableStateOf(listOf<CostRow>())
+
+    fun addCostRow() {
+        additionalCosts = additionalCosts + CostRow()
+    }
+
+    fun removeCostRow(index: Int) {
+        additionalCosts = additionalCosts.toMutableList().apply { removeAt(index) }
+    }
+
+    fun updateCostRow(index: Int, newRow: CostRow) {
+        additionalCosts = additionalCosts.toMutableList().apply { this[index] = newRow }
+    }
 
     var sourceAccount by mutableStateOf<UnifiedAccount?>(null)
     var destinationAccount by mutableStateOf<UnifiedAccount?>(null)
@@ -177,17 +245,17 @@ class TransactionEntryViewModel @AssistedInject constructor(
         quantity = "0"
         rate = "0"
         amountText = "0"
-        freightAmountText = "0"
-        freightType = FreightType.BORN_BY_SELLER
         businessType = BusinessTransactionType.SALE
         note = ""
         sourceAccount = null
         destinationAccount = null
+        additionalCosts = emptyList()
         
         if (id != null) {
             isEditing = true
             viewModelScope.launch {
                 val tx = transactionRepository.getTransactionById(id)
+                val children = transactionRepository.getChildTransactions(id)
                 if (tx != null) {
                     partyId = tx.partyId
                     toPartyId = tx.toPartyId
@@ -199,10 +267,52 @@ class TransactionEntryViewModel @AssistedInject constructor(
                     quantity = tx.quantity?.toPlainString() ?: "0"
                     rate = tx.rate?.toPlainString() ?: "0"
                     amountText = tx.amount.toPlainString()
-                    freightAmountText = tx.freightAmount.toPlainString()
-                    freightType = tx.freightType
                     businessType = tx.businessType
                     note = tx.note ?: ""
+
+                    // Reconstruct additional costs
+                    additionalCosts = children.map { child ->
+                        var childSrc: UnifiedAccount? = null
+                        var childDest: UnifiedAccount? = null
+
+                        when (child.businessType) {
+                            BusinessTransactionType.EXPENSE -> {
+                                childSrc = financialAccounts.value.find { it.id == child.financialAccountId }?.let { UnifiedAccount.Financial(it) }
+                            }
+                            BusinessTransactionType.PURCHASE -> {
+                                childDest = parties.value.find { it.id == child.partyId }?.let { UnifiedAccount.PartyAccount(it) }
+                            }
+                            BusinessTransactionType.PAYMENT_MADE -> {
+                                childSrc = financialAccounts.value.find { it.id == child.financialAccountId }?.let { UnifiedAccount.Financial(it) }
+                                childDest = parties.value.find { it.id == child.partyId }?.let { UnifiedAccount.PartyAccount(it) }
+                            }
+                            BusinessTransactionType.PAYMENT_RECEIVED -> {
+                                childSrc = parties.value.find { it.id == child.partyId }?.let { UnifiedAccount.PartyAccount(it) }
+                                childDest = financialAccounts.value.find { it.id == child.financialAccountId }?.let { UnifiedAccount.Financial(it) }
+                            }
+                            BusinessTransactionType.TRANSFER -> {
+                                childSrc = financialAccounts.value.find { it.id == child.financialAccountId }?.let { UnifiedAccount.Financial(it) }
+                                childDest = financialAccounts.value.find { it.id == child.toFinancialAccountId }?.let { UnifiedAccount.Financial(it) }
+                            }
+                            BusinessTransactionType.PARTY_SETTLEMENT -> {
+                                childSrc = parties.value.find { it.id == child.partyId }?.let { UnifiedAccount.PartyAccount(it) }
+                                childDest = parties.value.find { it.id == child.toPartyId }?.let { UnifiedAccount.PartyAccount(it) }
+                            }
+                            else -> {
+                                // Fallback
+                                childSrc = financialAccounts.value.find { it.id == child.financialAccountId }?.let { UnifiedAccount.Financial(it) } ?:
+                                           parties.value.find { it.id == child.partyId }?.let { UnifiedAccount.PartyAccount(it) }
+                            }
+                        }
+
+                        CostRow(
+                            type = child.linkedTransactionType ?: LinkedTransactionType.OTHER,
+                            amount = child.amount.toPlainString(),
+                            sourceAccount = childSrc,
+                            destinationAccount = childDest,
+                            note = child.note ?: ""
+                        )
+                    }
 
                     // Reconstruct source/destination for unified UI if applicable
                     when (tx.businessType) {
@@ -233,30 +343,15 @@ class TransactionEntryViewModel @AssistedInject constructor(
 
     val amount: BigDecimal
         get() = try {
-            if (businessType == BusinessTransactionType.PURCHASE || businessType == BusinessTransactionType.SALE) {
-                val q = BigDecimal(quantity)
-                val r = BigDecimal(rate)
-                q.multiply(r)
-            } else {
-                BigDecimal(amountText)
-            }
+            BigDecimal(amountText)
         } catch (e: Exception) {
             BigDecimal.ZERO
         }
 
-    val freightAmount: BigDecimal
-        get() = try {
-            BigDecimal(freightAmountText)
-        } catch (e: Exception) {
-            BigDecimal.ZERO
-        }
-
-    val netCost: BigDecimal
-        get() = if (freightType == FreightType.BORN_BY_US && (businessType == BusinessTransactionType.PURCHASE || businessType == BusinessTransactionType.SALE)) {
-            amount.add(freightAmount)
-        } else {
-            amount
-        }
+    val totalAmount: BigDecimal
+        get() = amount.add(additionalCosts.fold(BigDecimal.ZERO) { acc, cost ->
+            acc.add(try { BigDecimal(cost.amount) } catch (e: Exception) { BigDecimal.ZERO })
+        })
 
     val baseQuantity: BigDecimal?
         get() = try {
@@ -274,7 +369,46 @@ class TransactionEntryViewModel @AssistedInject constructor(
     var isSubmitting by mutableStateOf(false)
         private set
 
+    fun isFormValid(): Boolean {
+        val isProductRequired = businessType == BusinessTransactionType.PURCHASE || 
+                                businessType == BusinessTransactionType.SALE || 
+                                businessType == BusinessTransactionType.STOCK_ADJUSTMENT
+        
+        if (isProductRequired) {
+            if (businessType != BusinessTransactionType.STOCK_ADJUSTMENT && (partyId == null || partyId == 0L)) return false
+            if (productId == null || productId == 0L) return false
+            if (unitId == null || unitId == 0L) return false
+            val q = try { BigDecimal(quantity) } catch(e: Exception) { BigDecimal.ZERO }
+            if (q.compareTo(BigDecimal.ZERO) == 0) return false
+            val a = try { BigDecimal(amountText) } catch(e: Exception) { BigDecimal.ZERO }
+            if (a.compareTo(BigDecimal.ZERO) == 0) return false
+        } else if (isTransferMode) {
+            if (businessType == BusinessTransactionType.PARTY_SETTLEMENT) {
+                if (partyId == null || partyId == 0L || toPartyId == null || toPartyId == 0L) return false
+            } else if (sourceAccount == null || destinationAccount == null) return false
+            val a = try { BigDecimal(amountText) } catch(e: Exception) { BigDecimal.ZERO }
+            if (a.compareTo(BigDecimal.ZERO) == 0) return false
+        } else if (businessType == BusinessTransactionType.EXPENSE) {
+            if (expenseCategoryId == null || expenseCategoryId == 0L) return false
+            if (financialAccountId == null || financialAccountId == 0L) return false
+            val a = try { BigDecimal(amountText) } catch(e: Exception) { BigDecimal.ZERO }
+            if (a.compareTo(BigDecimal.ZERO) == 0) return false
+        } else if (businessType == BusinessTransactionType.PROFIT_DISTRIBUTION) {
+            if (partyId == null || partyId == 0L) return false
+            val a = try { BigDecimal(amountText) } catch(e: Exception) { BigDecimal.ZERO }
+            if (a.compareTo(BigDecimal.ZERO) == 0) return false
+        }
+
+        return true
+    }
+
     fun submitTransaction(onSuccess: () -> Unit, onError: (String) -> Unit) {
+        if (!isFormValid()) {
+            showErrors = true
+            onError("Please fill all required fields correctly.")
+            return
+        }
+
         viewModelScope.launch {
             isSubmitting = true
             val isProductRequired = businessType == BusinessTransactionType.PURCHASE || 
@@ -294,10 +428,19 @@ class TransactionEntryViewModel @AssistedInject constructor(
                 baseQuantity = if (isProductRequired) baseQuantity else null,
                 rate = if (isProductRequired) try { BigDecimal(rate) } catch(e: Exception) { null } else null,
                 amount = amount,
-                freightAmount = freightAmount,
-                freightType = freightType,
                 businessType = businessType,
-                note = note.takeIf { it.isNotBlank() }
+                note = note.takeIf { it.isNotBlank() },
+                additionalCosts = additionalCosts.map { cost ->
+                    com.sabid.khotianv2.domain.usecase.AdditionalCost(
+                        type = cost.type,
+                        amount = try { BigDecimal(cost.amount) } catch (e: Exception) { BigDecimal.ZERO },
+                        partyId = if (cost.sourceAccount is UnifiedAccount.PartyAccount) cost.sourceAccount.id else null,
+                        toPartyId = if (cost.destinationAccount is UnifiedAccount.PartyAccount) cost.destinationAccount.id else null,
+                        financialAccountId = if (cost.sourceAccount is UnifiedAccount.Financial) cost.sourceAccount.id else null,
+                        toFinancialAccountId = if (cost.destinationAccount is UnifiedAccount.Financial) cost.destinationAccount.id else null,
+                        note = cost.note.takeIf { it.isNotBlank() }
+                    )
+                }
             )
             isSubmitting = false
             result.onSuccess { onSuccess() }.onFailure { onError(it.message ?: "Unknown error") }

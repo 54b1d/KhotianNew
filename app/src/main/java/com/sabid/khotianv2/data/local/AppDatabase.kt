@@ -23,7 +23,7 @@ import com.sabid.khotianv2.data.local.entity.*
         ExpenseCategoryEntity::class,
         StocktakeEntity::class
     ],
-    version = 11,
+    version = 1,
     exportSchema = false
 )
 @TypeConverters(AppConverters::class)

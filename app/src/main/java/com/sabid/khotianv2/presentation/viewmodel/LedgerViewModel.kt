@@ -56,19 +56,19 @@ class LedgerViewModel @AssistedInject constructor(
         var currentBalance = openingBalance
         val allProcessed = list.sortedBy { it.timestamp }.map { transaction ->
             val change = when (transaction.type) {
-                TransactionType.DEBIT -> transaction.netCost
-                TransactionType.CREDIT -> transaction.netCost.negate()
+                TransactionType.DEBIT -> transaction.amount
+                TransactionType.CREDIT -> transaction.amount.negate()
                 TransactionType.PARTY_SETTLEMENT -> {
                     if (transaction.partyId == partyId) {
-                        transaction.netCost.negate()
+                        transaction.amount.negate()
                     } else if (transaction.toPartyId == partyId) {
-                        transaction.netCost
+                        transaction.amount
                     } else BigDecimal.ZERO
                 }
                 TransactionType.EQUITY -> {
                     when (transaction.businessType) {
-                        BusinessTransactionType.EQUITY_WITHDRAWAL -> transaction.netCost
-                        BusinessTransactionType.EQUITY_CONTRIBUTION, BusinessTransactionType.PROFIT_DISTRIBUTION -> transaction.netCost.negate()
+                        BusinessTransactionType.EQUITY_WITHDRAWAL -> transaction.amount
+                        BusinessTransactionType.EQUITY_CONTRIBUTION, BusinessTransactionType.PROFIT_DISTRIBUTION -> transaction.amount.negate()
                         else -> BigDecimal.ZERO
                     }
                 }

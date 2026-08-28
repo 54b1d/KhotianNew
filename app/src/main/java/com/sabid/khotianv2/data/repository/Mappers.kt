@@ -13,10 +13,9 @@ fun TransactionEntity.toDomain() = Transaction(
     quantity = quantity,
     baseQuantity = baseQuantity,
     rate = rate,
-    amount = if (amount.compareTo(BigDecimal.ZERO) == 0 && netCost.compareTo(BigDecimal.ZERO) != 0) netCost else amount,
-    freightAmount = freightAmount,
-    freightType = freightType.toDomain(),
-    netCost = if (netCost.compareTo(BigDecimal.ZERO) == 0 && amount.compareTo(BigDecimal.ZERO) != 0) amount else netCost,
+    amount = amount,
+    parentTransactionId = parentTransactionId,
+    linkedTransactionType = linkedTransactionType?.toDomain(),
     financialAccountId = financialAccountId,
     toFinancialAccountId = toFinancialAccountId,
     expenseCategoryId = expenseCategoryId,
@@ -37,9 +36,8 @@ fun Transaction.toEntity() = TransactionEntity(
     baseQuantity = baseQuantity,
     rate = rate,
     amount = amount,
-    freightAmount = freightAmount,
-    freightType = freightType.toEntity(),
-    netCost = if (netCost.compareTo(BigDecimal.ZERO) == 0 && amount.compareTo(BigDecimal.ZERO) != 0) amount else netCost,
+    parentTransactionId = parentTransactionId,
+    linkedTransactionType = linkedTransactionType?.toEntity(),
     financialAccountId = financialAccountId,
     toFinancialAccountId = toFinancialAccountId,
     expenseCategoryId = expenseCategoryId,
@@ -108,14 +106,20 @@ fun ExpenseCategory.toEntity() = ExpenseCategoryEntity(
     name = name
 )
 
-fun com.sabid.khotianv2.data.local.entity.FreightType.toDomain() = when (this) {
-    com.sabid.khotianv2.data.local.entity.FreightType.BORN_BY_US -> com.sabid.khotianv2.domain.model.FreightType.BORN_BY_US
-    com.sabid.khotianv2.data.local.entity.FreightType.BORN_BY_SELLER -> com.sabid.khotianv2.domain.model.FreightType.BORN_BY_SELLER
+fun com.sabid.khotianv2.data.local.entity.LinkedTransactionType.toDomain() = when (this) {
+    com.sabid.khotianv2.data.local.entity.LinkedTransactionType.FREIGHT -> com.sabid.khotianv2.domain.model.LinkedTransactionType.FREIGHT
+    com.sabid.khotianv2.data.local.entity.LinkedTransactionType.COMMISSION -> com.sabid.khotianv2.domain.model.LinkedTransactionType.COMMISSION
+    com.sabid.khotianv2.data.local.entity.LinkedTransactionType.LABOR -> com.sabid.khotianv2.domain.model.LinkedTransactionType.LABOR
+    com.sabid.khotianv2.data.local.entity.LinkedTransactionType.DISCOUNT -> com.sabid.khotianv2.domain.model.LinkedTransactionType.DISCOUNT
+    com.sabid.khotianv2.data.local.entity.LinkedTransactionType.OTHER -> com.sabid.khotianv2.domain.model.LinkedTransactionType.OTHER
 }
 
-fun com.sabid.khotianv2.domain.model.FreightType.toEntity() = when (this) {
-    com.sabid.khotianv2.domain.model.FreightType.BORN_BY_US -> com.sabid.khotianv2.data.local.entity.FreightType.BORN_BY_US
-    com.sabid.khotianv2.domain.model.FreightType.BORN_BY_SELLER -> com.sabid.khotianv2.data.local.entity.FreightType.BORN_BY_SELLER
+fun com.sabid.khotianv2.domain.model.LinkedTransactionType.toEntity() = when (this) {
+    com.sabid.khotianv2.domain.model.LinkedTransactionType.FREIGHT -> com.sabid.khotianv2.data.local.entity.LinkedTransactionType.FREIGHT
+    com.sabid.khotianv2.domain.model.LinkedTransactionType.COMMISSION -> com.sabid.khotianv2.data.local.entity.LinkedTransactionType.COMMISSION
+    com.sabid.khotianv2.domain.model.LinkedTransactionType.LABOR -> com.sabid.khotianv2.data.local.entity.LinkedTransactionType.LABOR
+    com.sabid.khotianv2.domain.model.LinkedTransactionType.DISCOUNT -> com.sabid.khotianv2.data.local.entity.LinkedTransactionType.DISCOUNT
+    com.sabid.khotianv2.domain.model.LinkedTransactionType.OTHER -> com.sabid.khotianv2.data.local.entity.LinkedTransactionType.OTHER
 }
 
 fun com.sabid.khotianv2.data.local.entity.TransactionType.toDomain() = when (this) {

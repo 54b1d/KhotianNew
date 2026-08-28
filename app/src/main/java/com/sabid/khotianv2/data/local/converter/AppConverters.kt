@@ -39,10 +39,10 @@ class AppConverters {
     fun toAuditAction(value: String): AuditAction = AuditAction.valueOf(value)
 
     @TypeConverter
-    fun fromFreightType(value: com.sabid.khotianv2.data.local.entity.FreightType): String = value.name
+    fun fromLinkedTransactionType(value: com.sabid.khotianv2.data.local.entity.LinkedTransactionType?): String? = value?.name
 
     @TypeConverter
-    fun toFreightType(value: String): com.sabid.khotianv2.data.local.entity.FreightType = com.sabid.khotianv2.data.local.entity.FreightType.valueOf(value)
+    fun toLinkedTransactionType(value: String?): com.sabid.khotianv2.data.local.entity.LinkedTransactionType? = value?.let { com.sabid.khotianv2.data.local.entity.LinkedTransactionType.valueOf(it) }
 
     @TypeConverter
     fun fromFinancialAccountType(value: FinancialAccountType): String = value.name

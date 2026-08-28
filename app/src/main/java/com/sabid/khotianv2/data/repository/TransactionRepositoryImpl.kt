@@ -43,20 +43,20 @@ class TransactionRepositoryImpl @Inject constructor(
             val openingBalance = party?.openingBalance ?: BigDecimal.ZERO
             entities.map { it.toDomain() }.fold(openingBalance) { acc, transaction ->
                 when (transaction.type) {
-                    com.sabid.khotianv2.domain.model.TransactionType.DEBIT -> acc.add(transaction.netCost)
-                    com.sabid.khotianv2.domain.model.TransactionType.CREDIT -> acc.subtract(transaction.netCost)
+                    com.sabid.khotianv2.domain.model.TransactionType.DEBIT -> acc.add(transaction.amount)
+                    com.sabid.khotianv2.domain.model.TransactionType.CREDIT -> acc.subtract(transaction.amount)
                     com.sabid.khotianv2.domain.model.TransactionType.PARTY_SETTLEMENT -> {
                         if (transaction.partyId == partyId) {
-                            acc.subtract(transaction.netCost)
+                            acc.subtract(transaction.amount)
                         } else if (transaction.toPartyId == partyId) {
-                            acc.add(transaction.netCost)
+                            acc.add(transaction.amount)
                         } else acc
                     }
                     com.sabid.khotianv2.domain.model.TransactionType.EQUITY -> {
                         when (transaction.businessType) {
-                            com.sabid.khotianv2.domain.model.BusinessTransactionType.EQUITY_WITHDRAWAL -> acc.add(transaction.netCost)
+                            com.sabid.khotianv2.domain.model.BusinessTransactionType.EQUITY_WITHDRAWAL -> acc.add(transaction.amount)
                             com.sabid.khotianv2.domain.model.BusinessTransactionType.EQUITY_CONTRIBUTION, 
-                            com.sabid.khotianv2.domain.model.BusinessTransactionType.PROFIT_DISTRIBUTION -> acc.subtract(transaction.netCost)
+                            com.sabid.khotianv2.domain.model.BusinessTransactionType.PROFIT_DISTRIBUTION -> acc.subtract(transaction.amount)
                             else -> acc
                         }
                     }
@@ -130,4 +130,10 @@ class TransactionRepositoryImpl @Inject constructor(
     override suspend fun getTransactionById(id: Long): Transaction? {
         return transactionDao.getTransactionById(id)?.toDomain()
     }
+
+    override suspend fun getChildTransactions(parentId: Long): List<Transaction> =
+        transactionDao.getChildTransactions(parentId).map { it.toDomain() }
+
+    override suspend fun deleteChildTransactions(parentId: Long) =
+        transactionDao.deleteChildTransactions(parentId)
 }

@@ -128,9 +128,8 @@ data class TransactionEntity(
     val baseQuantity: BigDecimal? = null,
     val rate: BigDecimal? = null,
     val amount: BigDecimal, // Base amount (qty * rate or direct amount)
-    val freightAmount: BigDecimal = BigDecimal.ZERO,
-    val freightType: FreightType = FreightType.BORN_BY_SELLER,
-    val netCost: BigDecimal = BigDecimal.ZERO,
+    val parentTransactionId: Long? = null,
+    val linkedTransactionType: LinkedTransactionType? = null,
     val type: TransactionType,
     val businessType: BusinessTransactionType,
     val note: String?,
@@ -147,8 +146,8 @@ enum class BusinessTransactionType {
     EQUITY_CONTRIBUTION, EQUITY_WITHDRAWAL, PROFIT_DISTRIBUTION
 }
 
-enum class FreightType {
-    BORN_BY_US, BORN_BY_SELLER
+enum class LinkedTransactionType {
+    FREIGHT, COMMISSION, LABOR, DISCOUNT, OTHER
 }
 
 @JsonClass(generateAdapter = true)

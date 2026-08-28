@@ -15,12 +15,15 @@ import androidx.compose.material3.MenuAnchorType
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import com.sabid.khotianv2.domain.model.BusinessTransactionType
-import com.sabid.khotianv2.domain.model.FreightType
+import com.sabid.khotianv2.domain.model.LinkedTransactionType
 import com.sabid.khotianv2.domain.model.PermissionType
+import com.sabid.khotianv2.presentation.viewmodel.CostRow
 import com.sabid.khotianv2.presentation.viewmodel.TransactionEntryViewModel
 import com.sabid.khotianv2.presentation.viewmodel.UnifiedAccount
 
@@ -50,6 +53,9 @@ fun TransactionEntryScreen(
     var showAccountMenu by remember { mutableStateOf(false) }
     var showExpenseCategoryMenu by remember { mutableStateOf(false) }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -66,9 +72,17 @@ fun TransactionEntryScreen(
                 }
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { viewModel.submitTransaction(onSuccess, {}) },
+                onClick = { 
+                    viewModel.submitTransaction(
+                        onSuccess = onSuccess,
+                        onError = { message ->
+                            scope.launch { snackbarHostState.showSnackbar(message) }
+                        }
+                    ) 
+                },
                 icon = { Icon(Icons.Rounded.Check, contentDescription = null) },
                 text = { Text(if (viewModel.isEditing) "Update" else "Save") },
                 expanded = !viewModel.isSubmitting,
@@ -196,7 +210,8 @@ fun TransactionEntryScreen(
                             showSrcMenu = true
                         },
                         readOnly = false,
-                        label = { Text("From Account / Party") },
+                        label = { Text("From Account / Party *") },
+                        isError = viewModel.showErrors && viewModel.sourceAccount == null,
                         trailingIcon = {
                             Row {
                                 if (srcSearchQuery.isNotEmpty()) {
@@ -250,7 +265,8 @@ fun TransactionEntryScreen(
                             showDestMenu = true
                         },
                         readOnly = false,
-                        label = { Text("To Account / Party") },
+                        label = { Text("To Account / Party *") },
+                        isError = viewModel.showErrors && viewModel.destinationAccount == null,
                         trailingIcon = {
                             Row {
                                 if (destSearchQuery.isNotEmpty()) {
@@ -296,16 +312,19 @@ fun TransactionEntryScreen(
                 OutlinedTextField(
                     value = viewModel.amountText,
                     onValueChange = { viewModel.amountText = it },
-                    label = { Text("Amount") },
+                    label = { Text("Amount *") },
+                    isError = viewModel.showErrors && (viewModel.amountText.isEmpty() || viewModel.amountText == "0"),
                     trailingIcon = {
                         if (viewModel.amountText.isNotEmpty()) {
-                            IconButton(onClick = { viewModel.amountText = "" }) {
+                            IconButton(onClick = { viewModel.amountText = "0" }) {
                                 Icon(Icons.Rounded.Clear, contentDescription = "Clear")
                             }
                         }
                     },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().onFocusChanged { 
+                        if (it.isFocused && viewModel.amountText == "0") viewModel.amountText = ""
+                    },
                     textStyle = MaterialTheme.typography.bodySmall
                 )
             }
@@ -336,7 +355,8 @@ fun TransactionEntryScreen(
                             showPartyMenu = true
                         },
                         readOnly = false,
-                        label = { Text(if (viewModel.businessType == BusinessTransactionType.PARTY_SETTLEMENT) "From Party (Payer)" else "Party") },
+                        label = { Text(if (viewModel.businessType == BusinessTransactionType.PARTY_SETTLEMENT) "From Party (Payer) *" else "Party *") },
+                        isError = viewModel.showErrors && (viewModel.partyId == null || viewModel.partyId == 0L) && viewModel.businessType != BusinessTransactionType.STOCK_ADJUSTMENT,
                         trailingIcon = {
                             Row {
                                 if (partySearchQuery.isNotEmpty()) {
@@ -415,7 +435,8 @@ fun TransactionEntryScreen(
                                 showToPartyMenu = true
                             },
                             readOnly = false,
-                            label = { Text("To Party (Receiver)") },
+                            label = { Text("To Party (Receiver) *") },
+                            isError = viewModel.showErrors && (viewModel.toPartyId == null || viewModel.toPartyId == 0L),
                             trailingIcon = {
                                 Row {
                                     if (toPartySearchQuery.isNotEmpty()) {
@@ -476,7 +497,8 @@ fun TransactionEntryScreen(
                             showProductMenu = true
                         },
                         readOnly = false,
-                        label = { Text("Product") },
+                        label = { Text("Product *") },
+                        isError = viewModel.showErrors && (viewModel.productId == null || viewModel.productId == 0L),
                         trailingIcon = {
                             Row {
                                 if (productSearchQuery.isNotEmpty()) {
@@ -529,17 +551,20 @@ fun TransactionEntryScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = viewModel.quantity,
-                        onValueChange = { viewModel.quantity = it },
-                        label = { Text("Qty") },
+                        onValueChange = { viewModel.onQuantityChange(it) },
+                        label = { Text("Qty *") },
+                        isError = viewModel.showErrors && (viewModel.quantity.isEmpty() || viewModel.quantity == "0"),
                         trailingIcon = {
-                            if (viewModel.quantity.isNotEmpty()) {
-                                IconButton(onClick = { viewModel.quantity = "" }) {
+                            if (viewModel.quantity.isNotEmpty() && viewModel.quantity != "0") {
+                                IconButton(onClick = { viewModel.onQuantityChange("0") }) {
                                     Icon(Icons.Rounded.Clear, contentDescription = "Clear")
                                 }
                             }
                         },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).onFocusChanged {
+                            if (it.isFocused && viewModel.quantity == "0") viewModel.onQuantityChange("")
+                        },
                         textStyle = MaterialTheme.typography.bodySmall
                     )
                     
@@ -564,7 +589,8 @@ fun TransactionEntryScreen(
                                 showUnitMenu = true
                             },
                             readOnly = false,
-                            label = { Text("Unit") },
+                            label = { Text("Unit *") },
+                            isError = viewModel.showErrors && (viewModel.unitId == null || viewModel.unitId == 0L),
                             trailingIcon = {
                                 Row {
                                     if (unitSearchQuery.isNotEmpty()) {
@@ -599,21 +625,45 @@ fun TransactionEntryScreen(
                     }
                 }
                 
-                OutlinedTextField(
-                    value = viewModel.rate,
-                    onValueChange = { viewModel.rate = it },
-                    label = { Text("Rate") },
-                    trailingIcon = {
-                        if (viewModel.rate.isNotEmpty()) {
-                            IconButton(onClick = { viewModel.rate = "" }) {
-                                Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = viewModel.rate,
+                        onValueChange = { viewModel.onRateChange(it) },
+                        label = { Text("Rate *") },
+                        isError = viewModel.showErrors && (viewModel.rate.isEmpty() || viewModel.rate == "0"),
+                        trailingIcon = {
+                            if (viewModel.rate.isNotEmpty() && viewModel.rate != "0") {
+                                IconButton(onClick = { viewModel.onRateChange("0") }) {
+                                    Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                                }
                             }
-                        }
-                    },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                    textStyle = MaterialTheme.typography.bodySmall
-                )
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f).onFocusChanged {
+                            if (it.isFocused && viewModel.rate == "0") viewModel.onRateChange("")
+                        },
+                        textStyle = MaterialTheme.typography.bodySmall
+                    )
+
+                    OutlinedTextField(
+                        value = viewModel.amountText,
+                        onValueChange = { viewModel.onAmountInputChange(it) },
+                        label = { Text("Amount *") },
+                        isError = viewModel.showErrors && (viewModel.amountText.isEmpty() || viewModel.amountText == "0"),
+                        trailingIcon = {
+                            if (viewModel.amountText.isNotEmpty() && viewModel.amountText != "0") {
+                                IconButton(onClick = { viewModel.onAmountInputChange("0") }) {
+                                    Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                                }
+                            }
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f).onFocusChanged {
+                            if (it.isFocused && viewModel.amountText == "0") viewModel.onAmountInputChange("")
+                        },
+                        textStyle = MaterialTheme.typography.bodySmall
+                    )
+                }
             } else if (!viewModel.isTransferMode) {
                 if (viewModel.businessType == BusinessTransactionType.EXPENSE) {
                     // Expense Category Selection
@@ -637,7 +687,8 @@ fun TransactionEntryScreen(
                                 showExpenseCategoryMenu = true
                             },
                             readOnly = false,
-                            label = { Text("Expense Category") },
+                            label = { Text("Expense Category *") },
+                            isError = viewModel.showErrors && (viewModel.expenseCategoryId == null || viewModel.expenseCategoryId == 0L),
                             trailingIcon = {
                                 Row {
                                     if (expenseCategorySearchQuery.isNotEmpty()) {
@@ -749,7 +800,8 @@ fun TransactionEntryScreen(
                                 showAccountMenu = true
                             },
                             readOnly = false,
-                            label = { Text("Payment Method (Account)") },
+                            label = { Text("Payment Method (Account) *") },
+                            isError = viewModel.showErrors && (viewModel.financialAccountId == null || viewModel.financialAccountId == 0L),
                             trailingIcon = {
                                 Row {
                                     if (accountSearchQuery.isNotEmpty()) {
@@ -794,41 +846,31 @@ fun TransactionEntryScreen(
                 }
             }
 
-            // Freight Section
+            // Additional Costs Section
             if (viewModel.businessType == BusinessTransactionType.PURCHASE || 
                 viewModel.businessType == BusinessTransactionType.SALE) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = viewModel.freightAmountText,
-                        onValueChange = { viewModel.freightAmountText = it },
-                        label = { Text("Freight Amount") },
-                        trailingIcon = {
-                            if (viewModel.freightAmountText.isNotEmpty()) {
-                                IconButton(onClick = { viewModel.freightAmountText = "" }) {
-                                    Icon(Icons.Rounded.Clear, contentDescription = "Clear")
-                                }
-                            }
-                        },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f),
-                        textStyle = MaterialTheme.typography.bodySmall
-                    )
-                    
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Freight Born By", style = MaterialTheme.typography.labelSmall)
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            RadioButton(
-                                selected = viewModel.freightType == FreightType.BORN_BY_US,
-                                onClick = { viewModel.freightType = FreightType.BORN_BY_US }
-                            )
-                            Text("Us", style = MaterialTheme.typography.labelSmall)
-                            RadioButton(
-                                selected = viewModel.freightType == FreightType.BORN_BY_SELLER,
-                                onClick = { viewModel.freightType = FreightType.BORN_BY_SELLER }
-                            )
-                            Text("Other", style = MaterialTheme.typography.labelSmall)
-                        }
+                
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Additional Costs", style = MaterialTheme.typography.titleSmall)
+                    TextButton(onClick = { viewModel.addCostRow() }) {
+                        Icon(Icons.Rounded.AddCircleOutline, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Add Cost")
                     }
+                }
+
+                viewModel.additionalCosts.forEachIndexed { index, cost ->
+                    CostRowItem(
+                        cost = cost,
+                        unifiedAccounts = viewModel.unifiedAccounts.collectAsState().value,
+                        onCostChange = { updated -> viewModel.updateCostRow(index, updated) },
+                        onRemove = { viewModel.removeCostRow(index) }
+                    )
                 }
             }
 
@@ -842,9 +884,9 @@ fun TransactionEntryScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Net Amount", style = MaterialTheme.typography.bodyMedium)
+                        Text("Total Amount", style = MaterialTheme.typography.bodyMedium)
                         Text(
-                            viewModel.netCost.toPlainString(),
+                            viewModel.totalAmount.toPlainString(),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -898,6 +940,207 @@ fun TransactionEntryScreen(
         if (viewModel.isSubmitting) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CostRowItem(
+    cost: CostRow,
+    unifiedAccounts: List<UnifiedAccount>,
+    onCostChange: (CostRow) -> Unit,
+    onRemove: () -> Unit
+) {
+    var showTypeMenu by remember { mutableStateOf(false) }
+    var showSrcMenu by remember { mutableStateOf(false) }
+    var showDestMenu by remember { mutableStateOf(false) }
+
+    var srcSearchQuery by remember { mutableStateOf(cost.sourceAccount?.name ?: "") }
+    var destSearchQuery by remember { mutableStateOf(cost.destinationAccount?.name ?: "") }
+
+    LaunchedEffect(cost.sourceAccount) {
+        srcSearchQuery = cost.sourceAccount?.name ?: ""
+    }
+    LaunchedEffect(cost.destinationAccount) {
+        destSearchQuery = cost.destinationAccount?.name ?: ""
+    }
+
+    val filteredSrcAccounts = remember(unifiedAccounts, srcSearchQuery) {
+        if (srcSearchQuery.isBlank()) unifiedAccounts
+        else unifiedAccounts.filter { it.name.contains(srcSearchQuery, ignoreCase = true) }
+    }
+
+    val filteredDestAccounts = remember(unifiedAccounts, destSearchQuery) {
+        if (destSearchQuery.isBlank()) unifiedAccounts
+        else unifiedAccounts.filter { it.name.contains(destSearchQuery, ignoreCase = true) }
+    }
+
+    Card(
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+    ) {
+        Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Cost Type Selector
+                ExposedDropdownMenuBox(
+                    expanded = showTypeMenu,
+                    onExpandedChange = { showTypeMenu = it },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    OutlinedTextField(
+                        value = cost.type.name,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Cost Type") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showTypeMenu) },
+                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        textStyle = MaterialTheme.typography.bodySmall
+                    )
+                    ExposedDropdownMenu(
+                        expanded = showTypeMenu,
+                        onDismissRequest = { showTypeMenu = false }
+                    ) {
+                        LinkedTransactionType.entries.forEach { type ->
+                            DropdownMenuItem(
+                                text = { Text(type.name, style = MaterialTheme.typography.bodySmall) },
+                                onClick = {
+                                    onCostChange(cost.copy(type = type))
+                                    showTypeMenu = false
+                                }
+                            )
+                        }
+                    }
+                }
+                
+                Spacer(Modifier.width(8.dp))
+
+                OutlinedTextField(
+                    value = cost.amount,
+                    onValueChange = { onCostChange(cost.copy(amount = it)) },
+                    label = { Text("Amount") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f),
+                    textStyle = MaterialTheme.typography.bodySmall
+                )
+
+                IconButton(onClick = onRemove) {
+                    Icon(Icons.Rounded.Clear, contentDescription = "Remove", tint = MaterialTheme.colorScheme.error)
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Source Account
+                ExposedDropdownMenuBox(
+                    expanded = showSrcMenu,
+                    onExpandedChange = { showSrcMenu = it },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    OutlinedTextField(
+                        value = srcSearchQuery,
+                        onValueChange = {
+                            srcSearchQuery = it
+                            showSrcMenu = true
+                        },
+                        readOnly = false,
+                        label = { Text("Payer (From)") },
+                        trailingIcon = {
+                            Row {
+                                if (srcSearchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { 
+                                        srcSearchQuery = ""
+                                        onCostChange(cost.copy(sourceAccount = null))
+                                    }) {
+                                        Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                                    }
+                                }
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = showSrcMenu)
+                            }
+                        },
+                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryEditable),
+                        textStyle = MaterialTheme.typography.bodySmall
+                    )
+                    ExposedDropdownMenu(
+                        expanded = showSrcMenu,
+                        onDismissRequest = { showSrcMenu = false }
+                    ) {
+                        filteredSrcAccounts.forEach { account ->
+                            DropdownMenuItem(
+                                text = { 
+                                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                        Text(account.name, style = MaterialTheme.typography.bodySmall)
+                                        Text(
+                                            if (account is UnifiedAccount.Financial) "Acc" else "Party",
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    onCostChange(cost.copy(sourceAccount = account))
+                                    srcSearchQuery = account.name
+                                    showSrcMenu = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // Destination Account
+                ExposedDropdownMenuBox(
+                    expanded = showDestMenu,
+                    onExpandedChange = { showDestMenu = it },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    OutlinedTextField(
+                        value = destSearchQuery,
+                        onValueChange = {
+                            destSearchQuery = it
+                            showDestMenu = true
+                        },
+                        readOnly = false,
+                        label = { Text("Payee (To)") },
+                        trailingIcon = {
+                            Row {
+                                if (destSearchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { 
+                                        destSearchQuery = ""
+                                        onCostChange(cost.copy(destinationAccount = null))
+                                    }) {
+                                        Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                                    }
+                                }
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = showDestMenu)
+                            }
+                        },
+                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryEditable),
+                        textStyle = MaterialTheme.typography.bodySmall
+                    )
+                    ExposedDropdownMenu(
+                        expanded = showDestMenu,
+                        onDismissRequest = { showDestMenu = false }
+                    ) {
+                        filteredDestAccounts.forEach { account ->
+                            DropdownMenuItem(
+                                text = { 
+                                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                        Text(account.name, style = MaterialTheme.typography.bodySmall)
+                                        Text(
+                                            if (account is UnifiedAccount.Financial) "Acc" else "Party",
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    onCostChange(cost.copy(destinationAccount = account))
+                                    destSearchQuery = account.name
+                                    showDestMenu = false
+                                }
+                            )
+                        }
+                    }
+                }
             }
         }
     }

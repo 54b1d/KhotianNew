@@ -165,9 +165,9 @@ private fun LedgerHeader() {
         verticalAlignment = Alignment.CenterVertically
     ) {
         HeaderText("Date", Modifier.weight(1.2f))
-        HeaderText("Type", Modifier.weight(0.8f))
-        HeaderText("Amt", Modifier.weight(1.2f), textAlign = TextAlign.End)
-        HeaderText("Net", Modifier.weight(1.2f), textAlign = TextAlign.End)
+        HeaderText("Type", Modifier.weight(1f))
+        HeaderText("Detail", Modifier.weight(1.5f))
+        HeaderText("Amt/Qty", Modifier.weight(1.3f), textAlign = TextAlign.End)
         HeaderText("Balance", Modifier.weight(1.5f), textAlign = TextAlign.End)
     }
 }
@@ -230,7 +230,7 @@ private fun LedgerRow(
                 BusinessTransactionType.PROFIT_DISTRIBUTION -> "Prof"
             }
             val typeColor = if (item.isCredit) Color(0xFF2E7D32) else Color(0xFFC62828)
-            Column(modifier = Modifier.weight(0.8f)) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = typeLabel,
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
@@ -246,7 +246,22 @@ private fun LedgerRow(
                     )
                 }
             }
-            Column(modifier = Modifier.weight(1.2f), horizontalAlignment = Alignment.End) {
+            
+            Column(modifier = Modifier.weight(1.5f)) {
+                val detailText = when {
+                    transaction.linkedTransactionType != null -> "Cost: ${transaction.linkedTransactionType.name}"
+                    item.productName != null -> item.productName
+                    else -> ""
+                }
+                Text(
+                    text = detailText,
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 9.sp),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Column(modifier = Modifier.weight(1.3f), horizontalAlignment = Alignment.End) {
                 if (transaction.quantity != null) {
                     Text(
                         text = "${transaction.quantity.toPlainString()} ${item.unitSymbol ?: ""}",
@@ -257,18 +272,11 @@ private fun LedgerRow(
                 }
                 Text(
                     text = transaction.amount.toPlainString(),
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
                     textAlign = TextAlign.End,
                     maxLines = 1
                 )
             }
-            Text(
-                text = transaction.netCost.toPlainString(),
-                modifier = Modifier.weight(1.2f),
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
-                textAlign = TextAlign.End,
-                maxLines = 1
-            )
             Text(
                 text = item.runningBalance.toPlainString(),
                 modifier = Modifier.weight(1.5f),
