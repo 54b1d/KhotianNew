@@ -61,6 +61,9 @@ interface PartyDao {
 
     @Query("SELECT * FROM parties WHERE id = :id")
     fun getPartyByIdFlow(id: Long): Flow<PartyEntity?>
+
+    @Query("UPDATE parties SET currentBalance = currentBalance + :amount WHERE id = :partyId")
+    suspend fun updateBalance(partyId: Long, amount: BigDecimal)
 }
 
 @Dao

@@ -88,7 +88,9 @@ class SampleDataGenerator @Inject constructor(
                     name = "Seed Supplier Alpha",
                     phoneNumber = "0123456789",
                     address = "Seed Market",
-                    type = "SUPPLIER"
+                    type = "SUPPLIER",
+                    openingBalance = BigDecimal.ZERO,
+                    currentBalance = BigDecimal.ZERO
                 )
             )
             val buyerBetaId = db.partyDao().insertParty(
@@ -96,7 +98,9 @@ class SampleDataGenerator @Inject constructor(
                     name = "Oil Buyer Beta",
                     phoneNumber = "0987654321",
                     address = "City Center",
-                    type = "CUSTOMER"
+                    type = "CUSTOMER",
+                    openingBalance = BigDecimal.ZERO,
+                    currentBalance = BigDecimal.ZERO
                 )
             )
             val investorGammaId = db.partyDao().insertParty(
@@ -104,7 +108,9 @@ class SampleDataGenerator @Inject constructor(
                     name = "Investor Gamma",
                     phoneNumber = "0111222333",
                     address = "Wealth District",
-                    type = "INVESTOR"
+                    type = "INVESTOR",
+                    openingBalance = BigDecimal.ZERO,
+                    currentBalance = BigDecimal.ZERO
                 )
             )
 
@@ -125,8 +131,9 @@ class SampleDataGenerator @Inject constructor(
                 )
             )
             db.financialAccountDao().updateBalance(businessBankId, equityAmount)
+            db.partyDao().updateBalance(investorGammaId, equityAmount.negate())
 
-            // B. Purchase of seeds: 1000kg at 80/kg = 80,000. Born by seller.
+            // B. Purchase of seeds: 1000kg at 80/kg = 80,000.
             val purchaseAmount = BigDecimal("80000.00")
             db.transactionDao().insertTransaction(
                 TransactionEntity(
@@ -143,6 +150,7 @@ class SampleDataGenerator @Inject constructor(
                     createdBy = creatorId
                 )
             )
+            db.partyDao().updateBalance(supplierAlphaId, purchaseAmount.negate())
 
             // C. Sale of oil: 500kg at 180/kg = 90,000.
             val saleAmount = BigDecimal("90000.00")
@@ -161,6 +169,7 @@ class SampleDataGenerator @Inject constructor(
                     createdBy = creatorId
                 )
             )
+            db.partyDao().updateBalance(buyerBetaId, saleAmount)
 
             // D. Payment to supplier: 50,000 from Business Bank
             val paymentMadeAmount = BigDecimal("50000.00")
@@ -176,6 +185,7 @@ class SampleDataGenerator @Inject constructor(
                 )
             )
             db.financialAccountDao().updateBalance(businessBankId, paymentMadeAmount.negate())
+            db.partyDao().updateBalance(supplierAlphaId, paymentMadeAmount)
 
             // E. Payment received from customer: 40,000 into bKash
             val paymentReceivedAmount = BigDecimal("40000.00")
@@ -191,6 +201,7 @@ class SampleDataGenerator @Inject constructor(
                 )
             )
             db.financialAccountDao().updateBalance(bkashId, paymentReceivedAmount)
+            db.partyDao().updateBalance(buyerBetaId, paymentReceivedAmount.negate())
 
             // F. Expense: Rent 12,000 from Business Bank
             val rentAmount = BigDecimal("12000.00")

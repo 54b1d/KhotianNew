@@ -10,7 +10,8 @@ data class Party(
     val phoneNumber: String? = null,
     val address: String? = null,
     val type: String,
-    val openingBalance: BigDecimal = BigDecimal.ZERO
+    val openingBalance: BigDecimal = BigDecimal.ZERO,
+    val currentBalance: BigDecimal = BigDecimal.ZERO
 )
 
 @JsonClass(generateAdapter = true)

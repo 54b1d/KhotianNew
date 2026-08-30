@@ -17,4 +17,5 @@ interface TransactionRepository {
     suspend fun getTransactionById(id: Long): Transaction?
     suspend fun getChildTransactions(parentId: Long): List<Transaction>
     suspend fun deleteChildTransactions(parentId: Long)
+    suspend fun updatePartyBalance(partyId: Long, amount: BigDecimal)
 }

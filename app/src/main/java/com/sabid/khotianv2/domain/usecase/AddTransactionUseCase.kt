@@ -77,6 +77,7 @@ class AddTransactionUseCase @Inject constructor(
 
         // 2. Reverse effects of OLD transaction and its children
         suspend fun reverseTransactionEffects(tx: Transaction) {
+            // Financial Account Effects
             if (tx.businessType == BusinessTransactionType.TRANSFER) {
                 if (tx.financialAccountId != null && tx.toFinancialAccountId != null) {
                     financialAccountRepository.transferBalance(tx.toFinancialAccountId!!, tx.financialAccountId!!, tx.amount)
@@ -92,6 +93,29 @@ class AddTransactionUseCase @Inject constructor(
                 if (balanceChange != BigDecimal.ZERO) {
                     financialAccountRepository.updateBalance(tx.financialAccountId!!, balanceChange.negate())
                 }
+            }
+
+            // Party Effects
+            if (tx.partyId != null) {
+                val partyBalanceChange = when (tx.type) {
+                    TransactionType.DEBIT -> tx.amount
+                    TransactionType.CREDIT -> tx.amount.negate()
+                    TransactionType.PARTY_SETTLEMENT -> tx.amount.negate()
+                    TransactionType.EQUITY -> {
+                        when (tx.businessType) {
+                            BusinessTransactionType.EQUITY_WITHDRAWAL -> tx.amount
+                            BusinessTransactionType.EQUITY_CONTRIBUTION, BusinessTransactionType.PROFIT_DISTRIBUTION -> tx.amount.negate()
+                            else -> BigDecimal.ZERO
+                        }
+                    }
+                    else -> BigDecimal.ZERO
+                }
+                if (partyBalanceChange != BigDecimal.ZERO) {
+                    transactionRepository.updatePartyBalance(tx.partyId!!, partyBalanceChange.negate())
+                }
+            }
+            if (tx.type == TransactionType.PARTY_SETTLEMENT && tx.toPartyId != null) {
+                transactionRepository.updatePartyBalance(tx.toPartyId!!, tx.amount.negate())
             }
         }
 
@@ -130,6 +154,7 @@ class AddTransactionUseCase @Inject constructor(
 
         // 4. Apply NEW effects for main transaction
         suspend fun applyTransactionEffects(tx: Transaction) {
+            // Financial Account Effects
             if (tx.businessType == BusinessTransactionType.TRANSFER) {
                 if (tx.financialAccountId != null && tx.toFinancialAccountId != null) {
                     financialAccountRepository.transferBalance(tx.financialAccountId!!, tx.toFinancialAccountId!!, tx.amount)
@@ -144,6 +169,29 @@ class AddTransactionUseCase @Inject constructor(
                 if (balanceChange != BigDecimal.ZERO) {
                     financialAccountRepository.updateBalance(tx.financialAccountId!!, balanceChange)
                 }
+            }
+
+            // Party Effects
+            if (tx.partyId != null) {
+                val partyBalanceChange = when (tx.type) {
+                    TransactionType.DEBIT -> tx.amount
+                    TransactionType.CREDIT -> tx.amount.negate()
+                    TransactionType.PARTY_SETTLEMENT -> tx.amount.negate()
+                    TransactionType.EQUITY -> {
+                        when (tx.businessType) {
+                            BusinessTransactionType.EQUITY_WITHDRAWAL -> tx.amount
+                            BusinessTransactionType.EQUITY_CONTRIBUTION, BusinessTransactionType.PROFIT_DISTRIBUTION -> tx.amount.negate()
+                            else -> BigDecimal.ZERO
+                        }
+                    }
+                    else -> BigDecimal.ZERO
+                }
+                if (partyBalanceChange != BigDecimal.ZERO) {
+                    transactionRepository.updatePartyBalance(tx.partyId!!, partyBalanceChange)
+                }
+            }
+            if (tx.type == TransactionType.PARTY_SETTLEMENT && tx.toPartyId != null) {
+                transactionRepository.updatePartyBalance(tx.toPartyId!!, tx.amount.negate())
             }
         }
 

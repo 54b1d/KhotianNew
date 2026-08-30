@@ -14,7 +14,8 @@ data class PartyEntity(
     val phoneNumber: String?,
     val address: String?,
     val type: String, // e.g., CUSTOMER, SUPPLIER, BOTH
-    val openingBalance: BigDecimal = BigDecimal.ZERO
+    val openingBalance: BigDecimal = BigDecimal.ZERO,
+    val currentBalance: BigDecimal = BigDecimal.ZERO
 )
 
 @JsonClass(generateAdapter = true)
@@ -70,6 +71,16 @@ enum class FinancialAccountType {
 @JsonClass(generateAdapter = true)
 @Entity(
     tableName = "transactions",
+    indices = [
+        androidx.room.Index("partyId"),
+        androidx.room.Index("toPartyId"),
+        androidx.room.Index("productId"),
+        androidx.room.Index("unitId"),
+        androidx.room.Index("financialAccountId"),
+        androidx.room.Index("toFinancialAccountId"),
+        androidx.room.Index("expenseCategoryId"),
+        androidx.room.Index("parentTransactionId")
+    ],
     foreignKeys = [
         ForeignKey(
             entity = PartyEntity::class,

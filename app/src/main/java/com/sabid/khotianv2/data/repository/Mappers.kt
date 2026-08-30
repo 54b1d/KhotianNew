@@ -54,7 +54,8 @@ fun PartyEntity.toDomain() = Party(
     phoneNumber = phoneNumber,
     address = address,
     type = type,
-    openingBalance = openingBalance
+    openingBalance = openingBalance,
+    currentBalance = currentBalance
 )
 
 fun Party.toEntity() = PartyEntity(
@@ -63,7 +64,8 @@ fun Party.toEntity() = PartyEntity(
     phoneNumber = phoneNumber,
     address = address,
     type = type,
-    openingBalance = openingBalance
+    openingBalance = openingBalance,
+    currentBalance = currentBalance
 )
 
 fun ProductEntity.toDomain() = Product(

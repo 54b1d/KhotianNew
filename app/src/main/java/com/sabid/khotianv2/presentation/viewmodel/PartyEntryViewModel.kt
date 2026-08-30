@@ -37,6 +37,8 @@ class PartyEntryViewModel @AssistedInject constructor(
     var address by mutableStateOf("")
     var type by mutableStateOf("CUSTOMER")
     var openingBalance by mutableStateOf("")
+    private var originalOpeningBalance = BigDecimal.ZERO
+    private var currentBalanceValue = BigDecimal.ZERO
     
     var isSubmitting by mutableStateOf(false)
         private set
@@ -52,6 +54,8 @@ class PartyEntryViewModel @AssistedInject constructor(
                     address = party.address ?: ""
                     type = party.type
                     openingBalance = party.openingBalance.toPlainString()
+                    originalOpeningBalance = party.openingBalance
+                    currentBalanceValue = party.currentBalance
                 }
             }
         }
@@ -65,13 +69,22 @@ class PartyEntryViewModel @AssistedInject constructor(
         
         viewModelScope.launch {
             isSubmitting = true
+            val ob = openingBalance.toBigDecimalOrNull() ?: BigDecimal.ZERO
+            val newCurrentBalance = if (partyId == null) {
+                ob
+            } else {
+                val delta = ob.subtract(originalOpeningBalance)
+                currentBalanceValue.add(delta)
+            }
+            
             val party = Party(
                 id = partyId ?: 0L,
                 name = name,
                 phoneNumber = phoneNumber.ifBlank { null },
                 address = address.ifBlank { null },
                 type = type,
-                openingBalance = openingBalance.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                openingBalance = ob,
+                currentBalance = newCurrentBalance
             )
             repository.addParty(party)
                 .onSuccess { onSuccess() }

@@ -136,4 +136,8 @@ class TransactionRepositoryImpl @Inject constructor(
 
     override suspend fun deleteChildTransactions(parentId: Long) =
         transactionDao.deleteChildTransactions(parentId)
+
+    override suspend fun updatePartyBalance(partyId: Long, amount: BigDecimal) {
+        partyDao.updateBalance(partyId, amount)
+    }
 }

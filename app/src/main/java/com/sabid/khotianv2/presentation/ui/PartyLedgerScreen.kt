@@ -145,7 +145,10 @@ fun PartyLedgerScreen(
                             onClick = { 
                                 expandedTransactionId = if (isExpanded) null else item.transaction.id 
                             },
-                            onEditClick = { onTransactionClick(item.transaction.id) }
+                            onEditClick = { 
+                                val idToEdit = item.transaction.parentTransactionId ?: item.transaction.id
+                                onTransactionClick(idToEdit) 
+                            }
                         )
                         HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
                     }
@@ -309,6 +312,16 @@ private fun LedgerRow(
                         text = "Note: ${transaction.note}",
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                }
+                
+                if (transaction.parentTransactionId != null) {
+                    Text(
+                        text = "Linked Transaction (Tapping Edit will open parent)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 4.dp),
+                        fontWeight = FontWeight.Bold
                     )
                 }
                 
